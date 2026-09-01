@@ -49,6 +49,12 @@ Appended as each step completes. `Figure` names map to
 | 1.1 | **Primary-profile choice is evidence-backed:** Engineering has the widest reach (11 records) and Leo owns **7 of 12** supplied cases, including the injection fixture no other role can retrieve. Priya owns **0** cases despite holding the restricted document. | `1_1_profile_choice` | 4 |
 | 1.1 | **All five embedded traps verified programmatically**, not taken on trust: 1 restricted record, 1 archived policy, 1 injection payload authored by an "External integration bot", and the 5 vs 18 September conflict spanning email, Slack, and the release brief. | *(audit output)* | 3, 12 |
 | 1.1 | The injection **is** regex-detectable — which is a trap. Pattern matching invites a shortcut we must refuse: the defence that generalises is treating retrieved content as data, never instructions. Regex is defence-in-depth at best. | *(audit output)* | 12 |
+| 1.2 | **Priority questions are workflow decisions, not test cases.** P1 reconciles the release brief's four named conditions against GitHub, Slack and the database — four source families in one question. | *(transcript)* | 4, 11 |
+| 1.2 | **A Leo-only product cannot demonstrate the refund-policy conflict** — both policies are scoped to `customer_success, finance`. Maya is therefore a required secondary profile, which also gives the strongest permission demo: same question, two profiles, different permitted evidence. | `1_1_access_heatmap` | 4, 5, 12 |
+| 1.2 | **Injection resistance belongs in the priority set, not the test set.** Indirect injection is triggered by innocent work — P3 is a mundane "summarize the deployment notes" request that happens to retrieve the poisoned message. | *(transcript)* | 12 |
+| 1.3 | **A refusal does not prove pre-retrieval filtering.** It is equally consistent with a politely-instructed model. The claim is only provable by exposing the candidate set — so the trace panel is the evidence for our most important access guarantee, not a convenience. | *(trace panel)* | 5, 12 |
+| 1.3 | **"80% of 3 questions" is arithmetically misleading** — 2 of 3 is 67%. Priority-question target stated as **3 of 3**; the 80% moved to the 12-case scenario set where the denominator is real. | *(thresholds table)* | 14 |
+| 1.3 | **Fabricated citations added as a third release blocker**, alongside permission leaks and unapproved actions. A citation that does not resolve destroys the product's premise as completely as a leak. | *(thresholds table)* | 14, 16 |
 
 ## Presentation Notes
 
