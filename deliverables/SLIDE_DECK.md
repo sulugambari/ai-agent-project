@@ -24,7 +24,7 @@ reconstructed from memory on the last day.
 | 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | Pending |
 | 8 | Connecting a live source safely | Step 4.3 figures | Pending |
 | 9 | Retrieval: lexical vs semantic vs hybrid | Step 5.5 figures | Pending |
-| 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 | Pending |
+| 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 · **design + figure ready from 2.2** | Figure ready |
 | 11 | Five narrow tools, one bounded agent | Step 6.1-6.2 figures | Pending |
 | 12 | Trust boundary: refusal, conflict, injection | Step 6.5, EVAL-005/006 | Pending |
 | 13 | Human approval before any action | Step 6.4 state diagram | Pending |
@@ -60,6 +60,11 @@ Appended as each step completes. `Figure` names map to
 | 2.1 | **The policy was audited against enforced metadata, not just written down: 32 of 32 auditable cells match, 0 mismatches.** A policy document that disagrees with the metadata actually enforced is worse than none, because it manufactures false confidence. Re-runnable after Phase 5. | `2_1_policy_vs_fixture` | 5, 14 |
 | 2.1 | **API reachability is not authorization.** The live repo is public, so anyone can read its issues — yet live work items are scoped to engineering, matching the local class. Not to protect public data, but for policy stability if the repo goes private, and coherence across ingestion paths. | `2_1_access_matrix` | 5, 8 |
 | 2.1 | **Default-deny is enforced at three layers**, not one: `parse_roles()` raises at ingestion, `CompanyDocument` requires the field, and the membership test excludes anything not explicitly listed. A malformed record fails loudly instead of becoming world-readable. | *(enforcement notes)* | 5 |
+| 2.2 | **HIGHLIGHT — a content-only hash creates a security hole, not just a stale answer.** `python-frontmatter` puts YAML in `.metadata` and body text in `.content`, so tightening `allowed_roles` leaves content byte-identical. A content-only hash fires no upsert, and the indexed chunk keeps its **old permission metadata — still retrievable under the old policy**. An indexing shortcut would reintroduce the exact leak the access matrix exists to prevent. Chunk IDs therefore hash content **plus** every field governing retrieval or access. Tested against five change types: timestamp IDs miss three, content-only misses two, governance hash catches all five. | `2_2_change_detection` | **10**, 5, 6 |
+| 2.2 | **Two identifiers, two jobs.** `source_id` never changes so citations keep resolving; `chunk_id` changes every revision so upserts replace rather than append. Conflating them *is* the EVAL-011 failure — one ID cannot be both constant and varying. | *(governance table)* | 10 |
+| 2.2 | **Deletion is invisible to every ID scheme** — fingerprints detect revision, only a manifest diff detects removal. Phase 5.4 needs both mechanisms, not either. | `2_2_change_detection` | 10 |
+| 2.2 | **The database is queried, never embedded.** Structured facts stay current by construction, with no staleness window — and `annual_value_eur` never enters the vector store, shrinking the permission surface. | *(governance table)* | 6, 10 |
+| 2.2 | **Only one source has a real clickable citation:** the live GitHub `html_url`. Slack, email, and document fixtures carry no URL, so their citations resolve to the record, not to the origin system. Worth stating plainly rather than implying every citation deep-links. | *(governance table)* | 8 |
 
 ## Presentation Notes
 

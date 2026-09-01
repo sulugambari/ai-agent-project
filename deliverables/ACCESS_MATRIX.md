@@ -115,11 +115,53 @@ to protect confidentiality of public data. It exists for three reasons:
 
 ## Source Governance
 
+**Figure:** `deliverables/figures/2_2_change_detection.png`
+
+### Two identifiers, two jobs
+
+| Identifier | Purpose | Behaviour on change |
+| --- | --- | --- |
+| `source_id` | Resolving a **citation** | **Never changes.** A citation written today must still resolve after the record is revised |
+| `chunk_id` = `<source_id>::<fingerprint>::<nn>` | Addressing a **chunk in the index** | **Changes on every revision**, so an upsert replaces the old chunk instead of appending beside it |
+
+Conflating these is the EVAL-011 failure: a single ID cannot both stay constant for
+citations and vary for upserts.
+
+### Revision fingerprint
+
+12 hex characters of `sha256` over content **plus every field that governs
+retrieval or access**: normalized content, title, `allowed_roles`,
+`confidentiality`, `status`, and `occurred_at`.
+
+Metadata is included deliberately, and the reason is security rather than
+correctness. `python-frontmatter` places YAML in `.metadata` and body text in
+`.content`, so tightening `allowed_roles` or `confidentiality` leaves the content
+**byte-identical**. A content-only hash would not fire an upsert, and the
+already-indexed chunk would keep its **old permission metadata and remain
+retrievable under the old policy** — a stale *authorization*, not a stale answer.
+That would reintroduce, through an indexing shortcut, exactly the leak this access
+matrix exists to prevent. Tested against five change types in the notebook; a
+timestamp-based ID misses three of them and a content-only hash misses two.
+
+### Per-source governance
+
 | Source | Stable ID strategy | Citation target | Update or deletion policy | Fallback |
 | --- | --- | --- | --- | --- |
-| Slack export | | | | |
-| Email export | | | | |
-| Documents | | | | |
-| Local GitHub export | | | | |
-| Live GitHub repository | | | | |
-| SQLite records | | | | |
+| Slack export | `source_id` from the export (`SLACK-ATLAS-103`). Chunk ID adds the governance fingerprint | File path + channel + author + timestamp. **No permalink exists** in the fixture — the export carries no URL field, so the citation resolves to the record, not to Slack | Whole folder re-read each sync; manifest diff upserts changed records and deletes records absent from the export. An edited message keeps its timestamp, so detection relies on the fingerprint, not recency | None required — local file. A missing or malformed file raises at parse time and fails visibly |
+| Email export | `X-Source-ID` header. `Message-ID` retained as a second, genuinely global identifier | File path + `Message-ID` + Subject + Date | Manifest diff as above | None required — local file |
+| Documents | `source_id` from YAML front matter | File path + title + `effective_at` + **`status`**. Status is part of the citation, not just metadata: P2 and T4 both require the reader to see that a source is archived | Manifest diff. **Front-matter-only changes are the critical case** — `status: current → archived` leaves content identical, so the fingerprint must span metadata or the stale threshold keeps being served | None required — local file |
+| Local GitHub export | `source_id` (`GH-142`). Deliberately independent of the issue title, per `04`: a retitled issue must keep its identity | File path + issue number + state. No URL in the fixture | Manifest diff. A retitled or reworded issue produces a new fingerprint (correct — content changed) while `source_id` holds, so existing citations still resolve | This source **is** the fallback for the live connector |
+| Live GitHub repository | `GH-LIVE-<number>` derived from the immutable issue number, with GitHub's `node_id` retained in metadata. Never derived from the title | **`html_url`** — the only source in the product with a genuine clickable deep link | Fetched each sync; manifest diff removes issues no longer returned (deleted or transferred) and upserts state changes such as open → closed. Records `source_freshness` (`live` \| `fallback`) and `fetched_at` | Local export under `data/raw/github/`. On failure the degraded state is **disclosed** in the answer and `source_freshness` is set to `fallback`; fallback data is never presented as live freshness |
+| SQLite records | `DB-<TABLE>-<primary key>` (`DB-CASE-481`), matching the convention already in `database.py` | Table + primary key, rendered as a record card. No URL | **Not indexed at all.** Queried live through narrow read-only tools at answer time, so there is no chunk to upsert or delete and no staleness window. This also keeps `annual_value_eur` out of the vector store entirely, shrinking the permission surface | None. If the database is unavailable the tool returns a controlled error and the agent must not invent a value (EVAL-008) |
+
+### Consequences carried into Phase 5
+
+1. **Two mechanisms are required, not one.** Fingerprints detect revision;
+   only a **manifest diff** detects deletion. `2_2_change_detection.png` shows
+   deletion is invisible to every ID scheme.
+2. **A full local rebuild must be available** for when incremental
+   synchronization fails, per `04`.
+3. **A visible last-indexed status** is required in the interface, and must
+   distinguish live from fallback for GitHub-sourced evidence.
+4. **The database is queried, never embedded.** Structured facts stay
+   authoritative and current by construction.

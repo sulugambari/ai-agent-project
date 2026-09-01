@@ -1,0 +1,1 @@
+A timestamp-based chunk ID misses silent edits. A content-only hash also misses front-matter and permission changes - so a record whose access is tightened would stay retrievable under its OLD policy. Hashing content plus governance metadata catches all five. Deletion is caught by none of them and requires a manifest diff.
