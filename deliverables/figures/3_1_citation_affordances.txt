@@ -1,0 +1,1 @@
+Every record populates all six permission- and citation-critical contract fields. What varies by family is what a citation can promise: only email carries a globally unique locator, and no local source offers a deep link - the live GitHub connector in Phase 4 will be the only one that can.

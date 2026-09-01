@@ -70,6 +70,10 @@ Appended as each step completes. `Figure` names map to
 | 2.3 | **"The latest document is always correct" is empirically false in our own data** — `DOC-POLICY-OLD-402` is archived and `EMAIL-ACME-301` is a genuine but superseded commitment. Recency is a signal, never authority. | *(threat model T-03)* | 12 |
 | 2.3 | **Post-retrieval filtering was rejected as an architecture.** Retrieve-then-redact still puts restricted content in the model, the trace and the logs — the disclosure happens and is merely hidden from the answer. It converts a structural control into a behavioural one. | *(D-002)* | 6 |
 | 2.3 | **Injection pattern-matching explicitly rejected as a primary control.** It is trivially regex-detectable *in this fixture* and does not generalise to rephrasing. Data-not-instructions is the control that does. | *(threat model T-01)* | 12 |
+| 3.1 | **Every malformed record fails loudly — 10 of 10 deliberate corruptions raise at parse time, 0 silent.** Missing / empty / unknown `allowed_roles`, missing `source_id`, invalid `confidentiality`, absent email governance headers. The default-deny claim is now tested, not asserted. | *(probe table)* | 7, 5 |
+| 3.1 | **Why a silent drop would be undetectable.** Retrieval recall, grounding and citation checks all operate on what the connector emitted — so a swallowed record is indistinguishable from a record that never existed. No amount of Phase 8 evaluation would catch it. | *(probe table)* | 7 |
+| 3.1 | **All 15 records populate every permission- and citation-critical field.** What varies by family is what a citation can *promise*: only email carries a globally unique locator, and **no local source offers a deep link** — the live GitHub connector will be the only one that can. | `3_1_citation_affordances` | 7, 8 |
+| 3.1 | This probe suite is the **regression harness for Phase 4** — a malformed API response must raise, not degrade quietly into a document with no `allowed_roles`. | *(probe table)* | 8 |
 
 ## Presentation Notes
 
