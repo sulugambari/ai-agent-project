@@ -171,6 +171,34 @@ document says. Verify with an actual unauthenticated or token-authenticated
 API call at the time you need it — visibility itself is not a stable
 assumption to hardcode into a connector or its documentation.
 
+### F-12 · Live and fallback GitHub records occupy **disjoint ID spaces** — an indexing hazard
+Verified after Phase 4 landed: a live fetch yields `GH-LIVE-1 … GH-LIVE-11`, while the
+fallback yields `GH-131`, `GH-142`, `GH-149`. **Overlap: none.**
+
+This is *not* a connector defect — the contract is correct and the freshness disclosure
+is honest. It is an **integration hazard for the index lifecycle (step 5.4)**. A manifest
+diff that treats "GitHub work items" as one synchronized set would, on a transient API
+failure:
+
+1. see all 11 `GH-LIVE-*` chunks absent from the incoming batch,
+2. **delete them**, and add the 3 fallback chunks,
+3. reverse the whole thing on the next successful fetch.
+
+Transient failure would therefore cause index thrash *and* amplify the outage — during
+the fallback window a query for live issues returns nothing, because the chunks were
+deleted rather than merely stale.
+
+**Decided mitigation for step 5.4:**
+- A **degraded batch must never drive deletions.** Only a batch whose
+  `source_freshness == "live"` may authorise removals for the live source.
+- The **manifest diff is scoped per successfully synchronized source**, never across all
+  GitHub records as one set.
+- Fallback is a **serving** path, not an indexing path.
+
+Related: the chunk fingerprint was verified stable across two consecutive live fetches —
+`fetched_at` changes every call but does **not** leak into the fingerprint, so a sync
+does not re-index the entire live source. That property must survive step 5.4.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
