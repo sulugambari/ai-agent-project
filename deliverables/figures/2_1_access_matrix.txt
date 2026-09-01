@@ -1,0 +1,1 @@
+The declared access policy for every record class. Conditional means the class grants no blanket access and per-record allowed_roles governs - used where a class is genuinely non-uniform, such as GitHub work items.

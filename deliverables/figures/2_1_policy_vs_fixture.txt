@@ -1,0 +1,1 @@
+Mechanical audit of the declared policy against the allowed_roles metadata carried by each record. Every auditable cell matches, so the matrix describes the boundary that is actually enforced rather than an aspiration.
