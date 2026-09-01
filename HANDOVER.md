@@ -199,6 +199,45 @@ Related: the chunk fingerprint was verified stable across two consecutive live f
 `fetched_at` changes every call but does **not** leak into the fingerprint, so a sync
 does not re-index the entire live source. That property must survive step 5.4.
 
+### F-13 · The live board issues **contaminate** company-knowledge retrieval
+Measured immediately after H2, merging Karthik's live records into the searchable
+corpus:
+
+| Question | Top-6 slots taken by our own board issues |
+| --- | --- |
+| P1 release readiness | 3 / 6 — `GH-LIVE-2` ranks **first**, above `DOC-ATLAS-403` and `GH-142` |
+| P2 Acme date | 2 / 6 |
+| P3 deployment notes | 2 / 6 |
+| EVAL-002 | 4 / 6 |
+| EVAL-012 | **5 / 6** |
+| **Total** | **16 / 30** |
+
+**Cause.** Our board issues *describe the product we are building*, so they contain
+"Atlas", "release", "Leo", "blocking", "conditions" — the exact vocabulary of the company
+knowledge they were merged alongside. `GH-LIVE-2` is *"Phase 1 · Frame the Product"*; it
+wins the Atlas question because it discusses Atlas release coordination as a **product
+decision**, not as company evidence.
+
+**Why this is worse than noise.** The agent could cite an issue about *building the
+assistant* as evidence about Atlas's actual release status. That is a
+fabricated-evidence-shaped failure wearing a valid citation, and it would pass a naive
+"is every claim cited?" check.
+
+**Origin — mine.** The repo choice (D-003) was recommended for guaranteed access and
+no-token reads, which was sound. I did not consider content contamination.
+`HANDOVER.md` §8 noted the adjacent point (live issues are meta, so EVAL-012's expected
+ids exist only locally) but framed it as a *coverage gap* rather than *active
+poisoning* — the stronger consequence only appears once the corpora are merged and
+measured.
+
+**Recommended fix — separate retrieval namespaces (pending decision, see D-004).** Live
+board issues get their own collection, reachable through a dedicated work-item tool and
+**excluded from company-knowledge search**. This keeps Phase 4's completion evidence
+intact (a real live issue can still be cited, fallback still disclosed) and costs no
+rework of the connector. It also models reality: a company's engineering board and its
+knowledge base are genuinely different corpora serving different query intents, so the
+separation is correct information architecture rather than a workaround.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
