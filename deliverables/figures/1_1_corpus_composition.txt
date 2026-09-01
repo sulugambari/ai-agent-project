@@ -1,0 +1,1 @@
+The corpus is 15 records across four source families. It is small enough that retrieval recall is easy, so Phase 5's honest win is precision and paraphrase handling, not recall.

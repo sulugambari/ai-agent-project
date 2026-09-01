@@ -1,0 +1,1 @@
+Permissions are metadata on every record and are enforced before retrieval, so this grid defines what each role's assistant can consider at all. DOC-HR-001 is visible to People Operations only.

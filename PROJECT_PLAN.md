@@ -164,6 +164,22 @@ the graded module structure.
 - Production code: `src/company_assistant/`
 - Generated evidence: `data/generated/` (git-ignored)
 
+## Presentation Capture (standing rule)
+
+A final slide deck is required. To avoid reconstructing it on the last day, every
+step records its presentable output as it completes:
+
+- `deliverables/SLIDE_DECK.md` — deck structure plus a **step ledger**, appended
+  to at the end of each step with the finding worth presenting and its figure.
+- `deliverables/figures/<name>.png` — 2x PNG written by `save_chart()`, **tracked
+  in git** so presentation assets survive a clean checkout. A sibling `<name>.txt`
+  holds the one-line message that figure proves.
+- `data/generated/charts/<name>.json` — the same chart as a Vega-Lite spec,
+  git-ignored and regenerable, consumed by the Phase 8 Streamlit dashboard.
+
+`SHOWCASE.md` remains the *live demonstration* script; `SLIDE_DECK.md` is the
+*slides*. Step 10.4 assembles the deck from the ledger.
+
 ---
 
 ## TUESDAY — Foundation, Boundary, Baseline, Live Source
@@ -330,6 +346,7 @@ Course module: `05-evaluation-and-release.md` Phase 10.
 | 10.1 | `SHOWCASE.md` + the seven-beat demonstration script |
 | 10.2 | Final `DECISIONS.md` release entry: demonstrate / demonstrate with explicit limitations / do not demonstrate yet |
 | 10.3 | Final review: correctness, security, privacy scrub (no `.env`, caches, generated indexes), notebook tidy-up, board closeout |
+| 10.4 | Assemble the final slide deck from `deliverables/SLIDE_DECK.md` and the tracked figures in `deliverables/figures/` |
 
 **Demonstration sequence:** employee problem and scope → one grounded
 multi-source answer → citations and tool trace → one refusal, conflict, or
