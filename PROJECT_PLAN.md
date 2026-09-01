@@ -396,6 +396,17 @@ comparison → release recommendation and remaining risks.
 | Live GitHub repository | **`sulugambari/ai-agent-project`** — public, issues enabled, no token required | Decided |
 | Groq model | `openai/gpt-oss-20b` / `llama-3.3-70b-versatile` | Verify in Phase 6 |
 
+## Working Model — Sequential (revised 1 September, D-005)
+
+The day-by-day owner columns below describe the **original parallel plan**. From Phase 5
+onward the team works **sequentially**: one active phase at a time, handed over at each
+phase boundary. Phase ownership is unchanged; only the concurrency is.
+
+Wednesday's schedule assumed Phases 5 and 6 ran concurrently. Sequentially it carries 5,
+then 6, then 7. Going parallel remains available at no rework cost, because the H2
+retrieval contract is frozen and four of the five Phase 6 tools have no Phase 5
+dependency.
+
 ## Handover
 
 `HANDOVER.md` is the single entry point for a teammate joining mid-project: current

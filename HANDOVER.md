@@ -65,16 +65,16 @@ cp .env.example .env
 | 1 · Frame the product | Together | ✅ Done — cleared the `AGENTS.md` implementation gate |
 | 2 · Information boundary | Together | ✅ Done — cleared the semantic-retrieval gate |
 | 3 · Deterministic baseline | Sulu | ✅ Done |
-| **4 · Live GitHub source** | **Karthik** | **← you start here** |
-| 5 · Managed RAG pipeline | Sulu | Todo (Wed) |
-| 6 · Tools and one agent | **Karthik** | Todo (Wed) |
-| 7 · Product experience | Together | Todo (Wed eve) |
-| 8 · Comparative evaluation | Sulu | Todo (Thu) |
-| 9 · Package the product | **Karthik** | Todo (Thu) |
-| 10 · Decide and demonstrate | Together | Todo (Thu) |
+| 4 · Live GitHub source | Karthik | ✅ Done — verified and closed |
+| **5 · Managed RAG pipeline** | **Sulu** | **← active.** H2 contract frozen; D-004 namespaces decided |
+| 6 · Tools and one agent | **Karthik** | **Holding** until Phase 5 lands (D-005) |
+| 7 · Product experience | Together | Todo |
+| 8 · Comparative evaluation | Sulu | Todo |
+| 9 · Package the product | **Karthik** | Todo |
+| 10 · Decide and demonstrate | Together | Todo |
 
-**Phase 3 and Phase 4 were parallel, not sequential** — neither blocks the other, and
-both feed Phase 5. Same for 5 ‖ 6 and 8 ‖ 9.
+Phases 3 and 4 ran in parallel. From Phase 5 onward the team works **sequentially**
+(D-005): one active phase, handed over at each boundary.
 
 ## 4 · The findings that constrain your work
 
@@ -272,41 +272,34 @@ From `AGENTS.md`, plus what we have committed to.
 `0` forbidden evidence exposed · `0` unapproved executions · `0` fabricated or
 unresolvable citations · `0` credentials leaked.
 
-## 7 · Handover points
+## 7 · Working model — sequential (D-005)
 
-| # | When | Direction | Artifact |
-| --- | --- | --- | --- |
-| **H1** | End of Tue | **Karthik → Sulu** | Live connector emitting `CompanyDocument` on the same contract, with fallback and `source_freshness` |
-| **H2** | ✅ **Delivered** `14a6252` | **Sulu → Karthik** | `company_assistant.rag` — the `Retriever` Protocol plus a *working* `LexicalRetriever`. Delivered as committed code and a written contract on [#7](https://github.com/sulugambari/ai-agent-project/issues/7) rather than a meeting, so it is versioned and reviewable |
-| **H3** | Wed midday | **Sulu → Karthik** | Working hybrid retriever swapped in behind that signature |
-| **H4** | Thu PM | **Karthik → Sulu** | Container startup evidence for `EVALUATION_REPORT.md` |
+The team decided on **1 September** to work **sequentially rather than in parallel**: one
+active phase at a time, handed over at each phase boundary. The original four handover
+points collapse into a rolling handover.
 
-### The one real blocking dependency
+| Phase | Owner | Handover |
+| --- | --- | --- |
+| 4 · Live GitHub | Karthik | ✅ **H1 received** — verified, closed |
+| 5 · Managed RAG | Sulu | ✅ **H2 delivered** (`14a6252`) — the retrieval contract is frozen ahead of Phase 6 |
+| 6 · Tools + agent | **Karthik** | Hand over **when Phase 5 lands.** Karthik holds until then |
+| 7 · Product experience | Together | — |
+| 8 · Evaluation | Sulu | — |
+| 9 · Packaging | Karthik | Container startup evidence returns to Sulu for `EVALUATION_REPORT.md` |
+| 10 · Decide + demo | Together | — |
 
-**Phase 6's `search_company_knowledge` tool wraps Phase 5's retriever.** Do not wait for
-it. At H2 we freeze the signature:
+**Why sequential:** no concurrent edits to shared files, no risk of two coding-agent
+sessions rewriting the same notebook, one reviewable line of history, and every phase
+gets both reviewers' attention.
 
-```python
-from company_assistant.rag import LexicalRetriever, Retriever, RetrievalOutcome
+**Schedule risk, stated plainly:** Wednesday previously fitted *because* 5 and 6 ran
+concurrently. Sequentially it carries 5, then 6, then 7. If it tightens, going parallel
+is available at **no rework cost** — the H2 contract is frozen and four of the five
+Phase 6 tools never depended on Phase 5.
 
-retriever: Retriever = LexicalRetriever(documents)
-outcome = retriever.search(query, employee, mode="lexical", limit=6)
-outcome.results          # tuple[SearchResult, ...]
-outcome.candidate_ids    # what was CONSIDERED - the F-4 trace evidence
-outcome.trace_lines()    # ready-made trace lines
-outcome.index_status      # freshness + last-indexed, for disclosure
-```
-
-**Revised from the `list[SearchResult]` originally promised here.** F-4 established that a
-refusal cannot prove pre-retrieval filtering, so the outcome separates the permitted
-candidates *scored* from the top-k *returned* — a record absent from results may merely
-have ranked low, whereas a record absent from candidates was never visible to that
-employee. Requesting an unsupported mode raises rather than downgrading, so a retriever
-cannot serve lexical results labelled `hybrid` and corrupt the Phase 8 comparison.
-
-`LexicalRetriever` is a working implementation, not a stub. At H3 the hybrid retriever
-swaps in behind the same Protocol with **no tool changes**. **Your other four tools have
-zero dependency on Phase 5** — build and test them first.
+**Still frozen at the seam:** `company_assistant.rag.Retriever`. Phase 6 tools depend on
+that Protocol, never on a concrete retriever, so the hybrid retriever swaps in without
+touching a tool.
 
 ### File ownership
 

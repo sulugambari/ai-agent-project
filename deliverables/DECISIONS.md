@@ -167,6 +167,92 @@ Record meaningful product and architecture decisions, not every small edit.
   either extreme, with F-11 generalised to "verify visibility, never assume it."
 - **Status:** Accepted
 
+### D-004 · Separate retrieval namespaces for the live project board
+
+- **Phase:** 5 (step 5.2), triggered by finding F-13 during handover H2
+- **Context:** Merging the live GitHub records into the searchable corpus was measured
+  to contaminate company-knowledge retrieval. Across the three priority questions plus
+  EVAL-002 and EVAL-012, **16 of 30 top-6 result slots** were occupied by our own
+  project-management issues; EVAL-012 was worst at 5 of 6; and `GH-LIVE-2`
+  (*"Phase 1 · Frame the Product"*) outranked both `DOC-ATLAS-403` and `GH-142` on the
+  flagship release-readiness question. The cause is structural rather than a ranking
+  artifact: the board issues *describe the product being built*, so they carry the same
+  vocabulary — Atlas, release, blocking, conditions — as the evidence they were merged
+  beside. The risk is worse than noise, because the agent could cite an issue about
+  building the assistant as evidence about Atlas's real release status. That is
+  fabricated evidence wearing a valid citation, and it would pass a naive
+  "is every claim cited?" check.
+- **Options considered:**
+  1. **Two retrieval namespaces — `company_knowledge` and `project_board` — reached by
+     different tools, with the board excluded from company-knowledge search** —
+     *selected*. Preserves every Phase 4 completion criterion (a genuinely live issue
+     can still be cited, the fallback is still disclosed) and requires no connector
+     rework. It is also correct information architecture rather than a workaround: a
+     company's engineering board and its knowledge base are genuinely different corpora
+     serving different query intents, and conflating them would be wrong even without
+     the contamination.
+  2. **Switch the live source to a repository with domain-relevant issues** — *rejected.*
+     Contradicts D-003, loses the guaranteed-access property that repository was chosen
+     for, and the same detour was already attempted and reverted during Phase 4.
+  3. **Keep one merged corpus and rely on the agent to disregard board issues** —
+     *rejected.* Measurably degrades precision on every priority question, and converts
+     a structural control into a behavioural one, which is the failure mode D-002 and
+     the threat model exist to avoid.
+  4. **Exclude the live source from retrieval entirely, using it only for a connector
+     demonstration** — *rejected.* Would forfeit the Phase 4 requirement that the
+     interface cite one genuinely live issue in a real answer.
+- **Coding-agent contribution:** Claude Code found the contamination by measuring the
+  merged corpus against the priority questions immediately after freezing the H2
+  contract, rather than assuming the merge was harmless; quantified it as 16/30 top-6
+  slots; and identified that the failure mode is a citation that resolves correctly
+  while supporting nothing, which the planned grounding check would not catch.
+- **Evidence reviewed:** the F-13 measurement in `HANDOVER.md` §4; the EVAL-002 and
+  EVAL-012 expected source ids; D-003; the tool boundaries in `AGENTS.md`.
+- **Decision and owner:** adopt option 1. Owner: Sulu.
+- **Consequences or follow-up:**
+  - `search_company_knowledge` is scoped to the `company_knowledge` namespace and must
+    never return `GH-LIVE-*` records.
+  - Work items are served by a separate tool that reports which namespace and which
+    freshness state each result came from.
+  - EVAL-012 is satisfied from the local export with explicit fallback disclosure, as
+    already noted in `HANDOVER.md` §8.
+  - **This also resolves F-12.** Scoping the index manifest per namespace means a
+    degraded live fetch can no longer authorise deletions of local GitHub chunks,
+    because the two are no longer members of one synchronized set. One mitigation now
+    covers both findings.
+  - The retrieval contract frozen at H2 is unaffected: namespaces are a property of
+    which corpus a retriever holds, not of the `Retriever` interface.
+- **Status:** Accepted
+
+### D-005 · Work sequentially rather than in parallel
+
+- **Phase:** 5, at the start of Wednesday's work
+- **Context:** The plan assigned Phases 5 and 6 to run concurrently on Wednesday, and 8
+  and 9 concurrently on Thursday, with four defined handover points. The human team
+  chose to work sequentially instead: one person progresses the build and hands over
+  when the next phase belongs to the other.
+- **Options considered:**
+  1. **Sequential — one active phase at a time** — *selected by the human team.*
+     Removes concurrent edits to shared files, removes the risk of two coding-agent
+     sessions rewriting the same notebook, and keeps a single reviewable line of
+     history. Every phase gets the full attention of both reviewers.
+  2. **Parallel with defined handover points** — *not selected.* Fits the three-day
+     window with more slack, but requires interface freezes ahead of implementation and
+     careful file-ownership discipline.
+- **Decision and owner:** sequential. Owner: Sulu (human team decision).
+- **Consequences or follow-up:**
+  - **Schedule risk, stated explicitly:** Wednesday previously fitted because 5 and 6
+    ran concurrently. Sequentially it carries 5, then 6, then 7. If Wednesday tightens,
+    the parallel option remains available at no rework cost, because the H2 contract is
+    already frozen and four of the five Phase 6 tools have no dependency on Phase 5.
+  - Handover points H1–H4 collapse to a single rolling handover at each phase boundary.
+    H1 and H2 are already complete.
+  - Karthik has been asked to hold Phase 6 until Phase 5 lands, so the two do not build
+    against different assumptions or touch the same files.
+  - The per-owner notebook split is retained. It costs nothing and still prevents
+    `.ipynb` merge conflicts whenever work does overlap at a boundary.
+- **Status:** Accepted
+
 ## Decision Template
 
 ### Decision: Short descriptive title
