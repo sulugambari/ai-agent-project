@@ -57,6 +57,61 @@ Record meaningful product and architecture decisions, not every small edit.
     5 September Atlas commitment.
 - **Status:** Accepted
 
+### D-002 · Single agent with narrow typed tools and a pre-retrieval permission filter
+
+- **Phase:** 2 (step 2.3), before implementation
+- **Context:** The architecture had to satisfy three constraints simultaneously:
+  answer priority question P1, which reconciles a four-condition checklist across
+  four source families; make an unauthorized disclosure *structurally* impossible
+  rather than prompt-dependent; and remain evaluable layer by layer, since
+  `02-system-design.md` requires connector, permission, retrieval, tool-routing,
+  grounding and abstention to be assessed separately.
+- **Options considered:**
+  1. **Single LangChain `create_agent` runtime, five narrow typed tools,
+     permission filtering applied before retrieval, and the business database
+     queried through tools rather than embedded** — *selected*. The pre-filter is
+     the only arrangement in which a restricted record never enters the candidate
+     set, so T-02 is closed structurally instead of behaviourally. Narrow typed
+     tools make inputs, outputs, permissions and failure modes explicit, which is
+     what makes tool routing measurable. One agent keeps the trace legible enough
+     to evaluate.
+  2. **Deterministic retrieve-then-generate pipeline with no agent** — *rejected
+     for the core path.* It cannot satisfy P1, which requires deciding *which*
+     sources to consult per condition, and it removes the tool-routing evaluation
+     layer entirely. It is genuinely better for fixed high-risk steps, and
+     `05-evaluation-and-release.md` lists it as an optional extension; **retained
+     as the preferred Phase 10 comparison** because it would isolate how much the
+     agent loop actually contributes.
+  3. **Post-retrieval filtering — retrieve everything, then redact** — *rejected.*
+     Restricted content would reach the model, the trace and the logs before being
+     removed, so the disclosure still happens and is merely hidden from the final
+     answer. This converts a structural control into a behavioural one, which is
+     precisely the failure `AGENTS.md` forbids.
+  4. **Multiple specialised agents** — *rejected.* Explicitly forbidden by
+     `AGENTS.md`, and it would add orchestration surface without addressing any
+     identified threat.
+- **Coding-agent contribution:** Claude Code produced the threat model, classified
+  every control as structural, behavioural or detective, and identified that the
+  distinguishing property between options 1 and 3 is not answer quality but
+  *where in the pipeline the guarantee lives*. It also found that option 3 would
+  leave restricted content in traces and logs even when the answer looked correct.
+- **Evidence reviewed:** the step 1.1 access heatmap; the step 2.1 policy-versus-
+  fixture audit, 32 of 32 matching; the step 2.2 change-detection comparison; the
+  recommended architecture in `02-system-design.md`; and the tool boundaries in
+  `AGENTS.md`.
+- **Decision and owner:** adopt option 1. Owner: Sulu.
+- **Consequences or follow-up:**
+  - Permission filtering must be a **metadata pre-filter on the vector query** in
+    Phase 5.2, not a post-query filter, or the structural guarantee is lost.
+  - Chunk fingerprints must span access metadata (D-002 depends on T-08 being
+    closed; see `THREAT_MODEL.md` and step 2.2).
+  - The agent is bounded to six tool calls, which caps worst-case latency and
+    cost and keeps the trace readable.
+  - The deterministic pipeline is recorded as the preferred Phase 10 extension.
+  - `THREAT_MODEL.md` asserts in executable form that every threat retains a
+    structural control; a later phase that weakens one fails that assertion.
+- **Status:** Accepted
+
 ## Decision Template
 
 ### Decision: Short descriptive title

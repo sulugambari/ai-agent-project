@@ -20,13 +20,13 @@ reconstructed from memory on the last day.
 | 3 | Northstar Labs and its data landscape | Step 1.1 corpus + access figures | Figures ready |
 | 4 | Who we built for, and what we refuse | `PRODUCT_BRIEF.md`, Step 1.2-1.3 | Figure ready |
 | 5 | The information boundary | `ACCESS_MATRIX.md`, Step 2.1-2.2 | Pending |
-| 6 | Architecture, and the alternative we rejected | Step 2.3, `D-001` | Pending |
+| 6 | Architecture, and the alternatives we rejected | Step 2.3, `D-001`, **`D-002` + threat-model figure** | Figure ready |
 | 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | Pending |
 | 8 | Connecting a live source safely | Step 4.3 figures | Pending |
 | 9 | Retrieval: lexical vs semantic vs hybrid | Step 5.5 figures | Pending |
 | 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 · **design + figure ready from 2.2** | Figure ready |
 | 11 | Five narrow tools, one bounded agent | Step 6.1-6.2 figures | Pending |
-| 12 | Trust boundary: refusal, conflict, injection | Step 6.5, EVAL-005/006 | Pending |
+| 12 | Trust boundary: refusal, conflict, injection | Step 6.5, EVAL-005/006 · **threat model 2.3** | Partly sourced |
 | 13 | Human approval before any action | Step 6.4 state diagram | Pending |
 | 14 | Evaluation results by layer | Step 8.4 figures | Pending |
 | 15 | What failed, and what we learned | Step 8.5 failure analysis | Pending |
@@ -65,6 +65,11 @@ Appended as each step completes. `Figure` names map to
 | 2.2 | **Deletion is invisible to every ID scheme** — fingerprints detect revision, only a manifest diff detects removal. Phase 5.4 needs both mechanisms, not either. | `2_2_change_detection` | 10 |
 | 2.2 | **The database is queried, never embedded.** Structured facts stay current by construction, with no staleness window — and `annual_value_eur` never enters the vector store, shrinking the permission surface. | *(governance table)* | 6, 10 |
 | 2.2 | **Only one source has a real clickable citation:** the live GitHub `html_url`. Slack, email, and document fixtures carry no URL, so their citations resolve to the record, not to the origin system. Worth stating plainly rather than implying every citation deep-links. | *(governance table)* | 8 |
+| 2.3 | **Every control is classified by what it depends on: structural (impossible by construction), behavioural (needs model compliance), detective (visible afterwards).** Tally: **14 structural, 4 behavioural, 8 detective**. Every one of 8 threats carries at least one structural control — asserted in executable code, so a later phase that weakens one fails loudly. | `2_3_threat_model` | 6, 12 |
+| 2.3 | **Direct answer to "the system prompt will prevent leaks":** in this design the prompt is never the primary control for anything. It is defence in depth on 4 of 26 controls, and every threat it touches also has a structural control behind it. | `2_3_threat_model` | 6, 12 |
+| 2.3 | **"The latest document is always correct" is empirically false in our own data** — `DOC-POLICY-OLD-402` is archived and `EMAIL-ACME-301` is a genuine but superseded commitment. Recency is a signal, never authority. | *(threat model T-03)* | 12 |
+| 2.3 | **Post-retrieval filtering was rejected as an architecture.** Retrieve-then-redact still puts restricted content in the model, the trace and the logs — the disclosure happens and is merely hidden from the answer. It converts a structural control into a behavioural one. | *(D-002)* | 6 |
+| 2.3 | **Injection pattern-matching explicitly rejected as a primary control.** It is trivially regex-detectable *in this fixture* and does not generalise to rephrasing. Data-not-instructions is the control that does. | *(threat model T-01)* | 12 |
 
 ## Presentation Notes
 

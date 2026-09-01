@@ -1,0 +1,1 @@
+Every threat carries at least one structural control, so no failure mode in this design depends on the model obeying its prompt. Behavioural controls are defence in depth, never the primary control - which is the direct answer to the assumption that a system prompt will prevent leaks.
