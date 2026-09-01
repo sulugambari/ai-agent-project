@@ -19,9 +19,9 @@ reconstructed from memory on the last day.
 | 2 | The problem: one question, four sources | Acme Freight scenario, `PROJECT_PLAN.md` | Pending |
 | 3 | Northstar Labs and its data landscape | Step 1.1 corpus + access figures | Figures ready |
 | 4 | Who we built for, and what we refuse | `PRODUCT_BRIEF.md`, Step 1.2-1.3 | Figure ready |
-| 5 | The information boundary | `ACCESS_MATRIX.md`, Step 2.1-2.2 | Pending |
+| 5 | The information boundary | `ACCESS_MATRIX.md`, Steps 2.1-2.2, **3.2 counterfactual** | **Ready** |
 | 6 | Architecture, and the alternatives we rejected | Step 2.3, `D-001`, **`D-002` + threat-model figure** | Figure ready |
-| 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | Pending |
+| 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | **Ready** |
 | 8 | Connecting a live source safely | Step 4.3 figures | Pending |
 | 9 | Retrieval: lexical vs semantic vs hybrid | Step 5.5 figures | Pending |
 | 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 · **design + figure ready from 2.2** | Figure ready |
@@ -74,6 +74,11 @@ Appended as each step completes. `Figure` names map to
 | 3.1 | **Why a silent drop would be undetectable.** Retrieval recall, grounding and citation checks all operate on what the connector emitted — so a swallowed record is indistinguishable from a record that never existed. No amount of Phase 8 evaluation would catch it. | *(probe table)* | 7 |
 | 3.1 | **All 15 records populate every permission- and citation-critical field.** What varies by family is what a citation can *promise*: only email carries a globally unique locator, and **no local source offers a deep link** — the live GitHub connector will be the only one that can. | `3_1_citation_affordances` | 7, 8 |
 | 3.1 | This probe suite is the **regression harness for Phase 4** — a malformed API response must raise, not degrade quietly into a document with no `allowed_roles`. | *(probe table)* | 8 |
+| 3.2 | **HIGHLIGHT — the permission filter is proven load-bearing by counterfactual.** Given a query engineered to attract it, `DOC-HR-001` ranks **#1 at score 0.86** in the unfiltered corpus and is **absent** from Leo's filtered set, while Priya correctly retrieves it. A refusal could not prove this; only the candidate set can. | `3_2_filter_is_loadbearing` | **5**, 12 |
+| 3.2 | **Asserted, not observed:** 4 roles × 9 adversarial queries — including the injection payload used *as* the query — gave **0 violations**. Executable, so it is the regression guard when Phase 5 swaps the retriever. | *(assertion)* | 5, 14 |
+| 3.3 | **HIGHLIGHT — the archived refund policy OUTRANKS the current one, 0.571 vs 0.429.** Its own warning, *"Do not use this archived **threshold** for **current** decisions"*, supplies the two query terms the current policy never uses. **The disclaimer written to prevent misuse is what makes the stale document win.** Shipped as-is the baseline answers EUR 2,500 — an approval beyond Maya's authority. | `3_3_conflict_baseline` | **7**, 12 |
+| 3.3 | **Semantic retrieval will not fix that.** The two policies are semantically near-identical and the archived one is *more* on-topic for "current". The fix must be status-aware reasoning over metadata — which is why step 2.2 carries governance fields on every chunk. | `3_3_conflict_baseline` | 7, 9 |
+| 3.3 | **Baseline scorecard: 0 release blockers, 5 product failures.** The deterministic permission filter is already correct; what is missing is abstention and authority. Phase 5–6 must fix the second class without regressing the first. | *(probe table)* | 7, 14 |
 
 ## Presentation Notes
 

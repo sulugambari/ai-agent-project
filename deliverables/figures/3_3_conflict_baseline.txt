@@ -1,0 +1,1 @@
+The archived EUR 2,500 policy OUTRANKS the current EUR 1,000 one, 0.571 to 0.429, because its own disclaimer - 'Do not use this archived threshold for current decisions' - contains the query words 'threshold' and 'current' that the current policy never uses. The warning written to prevent misuse is what makes the stale document win. Lexical ranking has no signal for authority.
