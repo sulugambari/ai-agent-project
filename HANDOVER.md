@@ -277,7 +277,7 @@ unresolvable citations · `0` credentials leaked.
 | # | When | Direction | Artifact |
 | --- | --- | --- | --- |
 | **H1** | End of Tue | **Karthik → Sulu** | Live connector emitting `CompanyDocument` on the same contract, with fallback and `source_freshness` |
-| **H2** | Wed 09:00 | **Sulu → Karthik** | The retriever **signature** (not the implementation) — 20 minutes, together |
+| **H2** | ✅ **Delivered** `14a6252` | **Sulu → Karthik** | `company_assistant.rag` — the `Retriever` Protocol plus a *working* `LexicalRetriever`. Delivered as committed code and a written contract on [#7](https://github.com/sulugambari/ai-agent-project/issues/7) rather than a meeting, so it is versioned and reviewable |
 | **H3** | Wed midday | **Sulu → Karthik** | Working hybrid retriever swapped in behind that signature |
 | **H4** | Thu PM | **Karthik → Sulu** | Container startup evidence for `EVALUATION_REPORT.md` |
 
@@ -287,12 +287,25 @@ unresolvable citations · `0` credentials leaked.
 it. At H2 we freeze the signature:
 
 ```python
-def search(query: str, employee: EmployeeContext, *,
-           mode: RetrievalMode = "hybrid", limit: int = 6) -> list[SearchResult]: ...
+from company_assistant.rag import LexicalRetriever, Retriever, RetrievalOutcome
+
+retriever: Retriever = LexicalRetriever(documents)
+outcome = retriever.search(query, employee, mode="lexical", limit=6)
+outcome.results          # tuple[SearchResult, ...]
+outcome.candidate_ids    # what was CONSIDERED - the F-4 trace evidence
+outcome.trace_lines()    # ready-made trace lines
+outcome.index_status      # freshness + last-indexed, for disclosure
 ```
 
-Code all five tools against that, using the existing `lexical_search` as a stand-in, and
-swap in the hybrid retriever at H3 with no tool changes. **Your other four tools have
+**Revised from the `list[SearchResult]` originally promised here.** F-4 established that a
+refusal cannot prove pre-retrieval filtering, so the outcome separates the permitted
+candidates *scored* from the top-k *returned* — a record absent from results may merely
+have ranked low, whereas a record absent from candidates was never visible to that
+employee. Requesting an unsupported mode raises rather than downgrading, so a retriever
+cannot serve lexical results labelled `hybrid` and corrupt the Phase 8 comparison.
+
+`LexicalRetriever` is a working implementation, not a stub. At H3 the hybrid retriever
+swaps in behind the same Protocol with **no tool changes**. **Your other four tools have
 zero dependency on Phase 5** — build and test them first.
 
 ### File ownership
