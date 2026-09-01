@@ -127,6 +127,9 @@ The modules build on each other in order. Complete the setup first, then follow 
 | [**Evaluation Cases**](data/evaluation/cases.json) | Required questions, risks, expected sources, and access outcomes. |
 | [**Source Package**](src/company_assistant/) | Starter connectors, baseline search, API, permissions, and evaluation helpers. |
 | [**Deliverables**](deliverables/) | Templates for the product brief, access matrix, decision log, evaluation report, and showcase. |
+| [**Project Plan**](PROJECT_PLAN.md) | This team's 11-phase / 37-step build plan, ground rules, and fixture-trap reference. |
+| [**Handover**](HANDOVER.md) | Entry point for a teammate joining mid-project: state, measured findings, decisions, handover points, gotchas. |
+| [**Chat History**](docs/CHAT_HISTORY.md) | Readable transcript of the working session behind Phases 0-3. |
 | [**Agent Instructions**](AGENTS.md) | Shared working rules for coding agents. |
 | [**Claude Code Instructions**](CLAUDE.md) | Claude Code entry point that delegates to the shared rules. |
 | [**Assets**](assets/) | Architecture and governance illustrations used by the project. |

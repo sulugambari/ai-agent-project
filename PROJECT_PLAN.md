@@ -396,6 +396,14 @@ comparison → release recommendation and remaining risks.
 | Live GitHub repository | **`sulugambari/ai-agent-project`** — public, issues enabled, no token required | Decided |
 | Groq model | `openai/gpt-oss-20b` / `llama-3.3-70b-versatile` | Verify in Phase 6 |
 
+## Handover
+
+`HANDOVER.md` is the single entry point for a teammate joining mid-project: current
+state, the ten measured findings that constrain later phases, decisions already taken,
+the four handover points, notebook policy, known gotchas, and open questions. The full
+session transcript is in `docs/CHAT_HISTORY.md` (readable) and
+`docs/chat-history-raw.jsonl` (verbatim).
+
 ## Live Tracking
 
 - **Project board:** <https://github.com/users/sulugambari/projects/12> (Northstar Assistant Build)
