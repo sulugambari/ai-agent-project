@@ -112,6 +112,61 @@ Record meaningful product and architecture decisions, not every small edit.
     structural control; a later phase that weakens one fails that assertion.
 - **Status:** Accepted
 
+### D-003 · Live GitHub source requires a fine-grained, read-only, single-repo token
+
+- **Phase:** 4 (steps 4.1–4.2), during implementation
+- **Context:** HANDOVER.md and ACCESS_MATRIX.md recorded `sulugambari/ai-agent-project`
+  as a public repository needing no token, on the assumption that both team members'
+  existing SSH access implied REST API access. Building the live connector (4.1)
+  falsified this: an unauthenticated `GET /repos/sulugambari/ai-agent-project`
+  returned `404`, and the repo was still absent from the collaborator's `/user/repos`
+  even after a fine-grained token was issued, because the GitHub *collaborator invite*
+  itself had not been accepted. `git ls-remote` succeeding over SSH said nothing about
+  REST API access — the two are authorized independently (F-11).
+- **Options considered:**
+  1. **Accept the collaborator invite and use a fine-grained, read-only,
+     single-repository token scoped to `sulugambari/ai-agent-project`** — *selected*.
+     Preserves the original repo choice (guaranteed access for both of us, our own
+     phase issues as live data) once the invite is actually accepted; matches the
+     course text's own guidance for a private repository ("use a fine-grained
+     personal access token limited to one repository and read-only issue metadata").
+  2. **Switch the live source to a repository owned outright by one team member**
+     (tried during implementation: `karthikarumukam-code/ds-ai-agent`) — *rejected*.
+     Broke the "guaranteed access for both of us" property the original choice was
+     selected for, and had no existing issues to serve as live data. Reverted once the
+     collaborator-invite root cause was found instead of worked around.
+  3. **Treat the repo as effectively unreachable and rely on the local fallback
+     only** — *rejected*. Would satisfy EVAL-012's fallback-disclosure requirement but
+     not the Phase 4 completion evidence, which requires citing one genuinely live
+     issue.
+- **Coding-agent contribution:** Claude Code diagnosed the 404 as a real access gap
+  (not a naming or config error) by cross-checking the unauthenticated request against
+  `git ls-remote` (which succeeded) and `/user/repos` (which omitted the target repo
+  even with a token), isolating the cause to an unaccepted collaborator invite rather
+  than a token-scope or repo-visibility problem.
+- **Evidence reviewed:** `curl` against the GitHub REST API, unauthenticated and
+  token-authenticated; `git ls-remote origin`; `/user/repos` for the issuing account;
+  `04-connected-rag-and-agent.md`'s guidance on fine-grained tokens for private repos.
+- **Decision and owner:** adopt option 1. Owner: Karthik, confirmed with Sulu.
+- **Consequences or follow-up:**
+  - `HANDOVER.md` §2 and §5, and `ACCESS_MATRIX.md`'s "API reachability is not
+    authorization" section, corrected from "public, no token needed" to reflect the
+    repo was briefly private mid-phase (F-11 added to HANDOVER.md §4).
+  - The intentional `allowed_roles = {"engineering"}` policy on live work items is
+    unaffected either way — it was already justified independent of the repo's actual
+    visibility (reason 1 in `ACCESS_MATRIX.md` predicted exactly this kind of change).
+  - Token scope stays minimal: Issues read-only, single repository, elevated to
+    read-write only twice and briefly, to seed and then clean up two test issues in
+    the abandoned `ds-ai-agent` detour, and returned to read-only afterward.
+- **Update (later in Phase 4):** the team made `sulugambari/ai-agent-project` public
+  again, restoring unauthenticated read access — the connector needs no token for
+  fetches against it as currently configured. This does not reverse the decision: a
+  token is still required for any *write* action (e.g. the board comment recording
+  Phase 4's completion evidence), independent of repository visibility, and `HANDOVER.md`
+  / `ACCESS_MATRIX.md` are updated to state the *current* visibility rather than
+  either extreme, with F-11 generalised to "verify visibility, never assume it."
+- **Status:** Accepted
+
 ## Decision Template
 
 ### Decision: Short descriptive title

@@ -50,7 +50,10 @@ see every finding below with its evidence.
 ```bash
 cp .env.example .env
 # GITHUB_REPOSITORY=sulugambari/ai-agent-project
-# GITHUB_TOKEN=            <- leave EMPTY. The repo needs no token (see §5, D-003)
+# GITHUB_TOKEN=            <- the repo is public again as of Phase 4 close, so
+#                              reads need no token. A token is still required
+#                              for any write action (e.g. posting a comment),
+#                              regardless of visibility. See §5, D-003.
 # GROQ_API_KEY=            <- needed from Phase 6, not Phase 4
 ```
 
@@ -149,6 +152,25 @@ should not be network-reachable → your Phase 9 packaging decision.
 SQLite page layout varies per run. **Never compare checksums; compare rows.** Matters
 for EVAL-008, which deliberately makes the database unavailable.
 
+### F-11 · SSH access does not imply REST API access — a repo's visibility can also change under you
+This document originally recorded the live repo as public, needing no token.
+Mid-Phase-4 it was not: an unauthenticated `GET
+/repos/sulugambari/ai-agent-project` returned `404`, and the repo was absent
+from a collaborator's `/user/repos` even after a fine-grained token was
+issued, because the GitHub *collaborator invite* had not yet been accepted.
+`git ls-remote` succeeding over SSH proved nothing about REST API access — the
+two are authorized independently. Worked around at the time with a
+fine-grained, read-only, single-repo token (D-003); the team then made the
+repository public again, restoring the original "no token needed for reads"
+assumption — but a token is still required for any *write* action (e.g. the
+board comment in step 4's completion evidence) regardless of visibility.
+
+**Consequence:** do not infer GitHub API reachability, or a repository's
+current visibility, from git/SSH access working, or from what a prior
+document says. Verify with an actual unauthenticated or token-authenticated
+API call at the time you need it — visibility itself is not a stable
+assumption to hardcode into a connector or its documentation.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
@@ -158,7 +180,7 @@ Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evide
 | **D-001** | Keep Groq + Streamlit as the core path | `AGENTS.md` requires it; alternatives are Phase 10 extensions only |
 | **D-002** | One agent, five narrow typed tools, permission **pre**-filter, database queried not embedded | The pre-filter is the only arrangement where a leak is structurally impossible |
 | — | **Leo primary, Maya secondary** | Leo owns 7 of 12 cases incl. the engineering-only injection fixture; Maya is *required* because both refund policies are scoped to `customer_success, finance` and a Leo-only product cannot demonstrate the conflicting-policy behaviour |
-| — | **Live source = `sulugambari/ai-agent-project`** | Guaranteed access for both of us, **no token needed**, and our own phase issues are the live data |
+| **D-003** | **Live source = `sulugambari/ai-agent-project`.** Public again as of Phase 4 close — no token needed for reads. A token is still required for any write action | Guaranteed access for both of us, and our own phase issues are the live data. Mid-phase the repo was briefly private, requiring a collaborator token (§4, F-11) — record generalises to: never assume repo visibility, verify it |
 | — | **Live work items scoped to `engineering`** despite the repo being readable | Policy stability if the repo goes private, and coherence with the local class. *Not* a claim to protect public data |
 | — | **Contract value denied to Customer Success** | No priority question needs it; narrower default when need is not demonstrated |
 | — | **Notebook = narrative/evidence layer; `src/` = graded production code** | `AGENTS.md` grades module architecture and requires agent logic independent of the interfaces |

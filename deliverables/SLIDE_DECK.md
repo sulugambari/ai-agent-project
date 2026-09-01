@@ -22,7 +22,7 @@ reconstructed from memory on the last day.
 | 5 | The information boundary | `ACCESS_MATRIX.md`, Steps 2.1-2.2, **3.2 counterfactual** | **Ready** |
 | 6 | Architecture, and the alternatives we rejected | Step 2.3, `D-001`, **`D-002` + threat-model figure** | Figure ready |
 | 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | **Ready** |
-| 8 | Connecting a live source safely | Step 4.3 figures | Pending |
+| 8 | Connecting a live source safely | Step 4.3 figures | **Ready** |
 | 9 | Retrieval: lexical vs semantic vs hybrid | Step 5.5 figures | Pending |
 | 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 · **design + figure ready from 2.2** | Figure ready |
 | 11 | Five narrow tools, one bounded agent | Step 6.1-6.2 figures | Pending |
@@ -79,6 +79,10 @@ Appended as each step completes. `Figure` names map to
 | 3.3 | **HIGHLIGHT — the archived refund policy OUTRANKS the current one, 0.571 vs 0.429.** Its own warning, *"Do not use this archived **threshold** for **current** decisions"*, supplies the two query terms the current policy never uses. **The disclaimer written to prevent misuse is what makes the stale document win.** Shipped as-is the baseline answers EUR 2,500 — an approval beyond Maya's authority. | `3_3_conflict_baseline` | **7**, 12 |
 | 3.3 | **Semantic retrieval will not fix that.** The two policies are semantically near-identical and the archived one is *more* on-topic for "current". The fix must be status-aware reasoning over metadata — which is why step 2.2 carries governance fields on every chunk. | `3_3_conflict_baseline` | 7, 9 |
 | 3.3 | **Baseline scorecard: 0 release blockers, 5 product failures.** The deterministic permission filter is already correct; what is missing is abstention and authority. Phase 5–6 must fix the second class without regressing the first. | *(probe table)* | 7, 14 |
+| 4.1 | **A repo's visibility is not a stable assumption — verify it, don't inherit it from a prior document.** `sulugambari/ai-agent-project` was recorded as public/no-token-needed; mid-build it was actually private (an unaccepted collaborator invite meant SSH access worked but the REST API returned `404` for both team members), then made public again. Logged as F-11/D-003 rather than silently worked around. | *(curl evidence, D-003)* | 8 |
+| 4.2 | **Malformed live responses fail through one typed exception with a classified reason, not a bare `except`.** `GitHubFetchError(reason=...)` distinguishes `rate_limited` / `not_found` / `unauthorized` / `server_error` / `network` / `malformed` so the fallback and the disclosed message both know *why*, without either duplicating the classification logic or swallowing real bugs into a silent fallback. 9 mocked failure probes (bad fields, bad timestamp, non-list body, HTTP 403/404/500, timeout): 0 silent. | *(probe table)* | 8 |
+| 4.2 | **Stable IDs and an intentional policy hold under a real fetch.** `source_id="GH-LIVE-<number>"` never depends on title; `allowed_roles={"engineering"}` is set deliberately, not inherited from "whatever the API allows" — confirmed against 11 real live issues. | *(live fetch evidence)* | 8 |
+| 4.3 | **HIGHLIGHT — fallback triggers on a real failure, not a mocked one, and freshness is never fabricated.** Two real runs: the working repo (`source_freshness="live"`) and a genuinely nonexistent repo, producing a real `404` → real fallback to the local export (`source_freshness="fallback"` on every returned document, plus a disclosed reason). Every citation-critical field is populated on both paths; only `html_url`/`node_id` are absent from the fallback by design — the local export has no deep link to give. | `4_3_live_vs_fallback_parity` | **8** |
 
 ## Presentation Notes
 

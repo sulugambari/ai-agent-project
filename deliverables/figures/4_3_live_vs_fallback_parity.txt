@@ -1,0 +1,1 @@
+The live and local-fallback GitHub paths populate the same citation-critical fields (including html_url, present only on the live path by design - the local export has no deep link to preserve). Only source_freshness and fetched_at differ in value, never in presence, so a citation never silently loses a field when the connector degrades.

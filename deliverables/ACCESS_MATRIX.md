@@ -49,15 +49,19 @@ overstate access, and as `Deny` would understate it. Both would be wrong.
 
 ### API reachability is not authorization
 
-The live GitHub source is `sulugambari/ai-agent-project`, a **public** repository:
-anyone can read its issues without a token. We nonetheless scope live work items
-to `engineering` only, matching the local class. The restriction is **not** claimed
-to protect confidentiality of public data. It exists for three reasons:
+The live GitHub source is `sulugambari/ai-agent-project`, a **public** repository as
+of Phase 4 close: anyone can read its issues without a token (a write action, such
+as posting a comment, still requires an authenticated, collaborator-scoped token
+regardless of visibility). We nonetheless scope live work items to `engineering`
+only, matching the local class. The restriction is **not** claimed to protect
+confidentiality of public data. It exists for three reasons:
 
 1. **Policy stability under infrastructure change.** A policy derived from "it is
-   public anyway" becomes silently wrong the moment the repository is made private
-   — the realistic production case. A policy derived from the product's remit
-   stays correct either way.
+   public anyway" becomes silently wrong the moment the repository is made private.
+   This happened, briefly, mid-Phase-4 (D-003, F-11 in `HANDOVER.md`): the repository
+   was private for part of the build, requiring a collaborator token, then made
+   public again. The access policy on live work items did not need to change either
+   way, because it was never derived from visibility in the first place.
 2. **Coherence across ingestion paths.** If local `GH-142` is denied to Customer
    Success while a live issue is allowed, the same class of information carries two
    policies depending on how it was ingested. That is an incoherent boundary and a
