@@ -514,6 +514,37 @@ that the defect was real. They are **not** mixed with post-fix rows: an evaluati
 measure one system, and pooling rows from either side of a code change would compare the
 product to itself.
 
+### F-27 · The free-tier limit is tokens-per-minute, not a daily cap — and the product's honest error defeated my retry logic
+Two things measured while running Phase 8, both refining F-21.
+
+**1. The constraint is TPM.** A burst of agent turns exhausted the quota after 8 scored
+runs, and a **single small completion succeeded immediately afterwards**. So the tier is
+not spent for the day; it is rate-limited per minute, and agent turns are token-heavy
+because tool output enters the context. The fix is therefore **pacing**, not a smaller
+evaluation: 15 s between model-backed turns keeps the run under TPM and lets it finish.
+F-21's "the free tier cannot complete a Phase-6-sized evaluation" is true of an unpaced
+run and false of a paced one.
+
+**2. Correct product behaviour broke my harness.** On a rate limit the service does not
+raise — it returns `Answer(status="error")` with *"No conclusion should be drawn from this
+failure"*. That is exactly right under T-07: report the outage, never fabricate. But
+because nothing propagated, the harness's retry path never triggered and **19 quota events
+were scored as behavioural `error` results.**
+
+That is precisely the failure D-009 forbids — *"an evaluation that counts a 429 as a
+behavioural failure measures the quota, not the model"* — and I wrote that rule myself,
+then built a harness that broke it. The harness only inspected raised exceptions; it never
+considered that the honest path returns a value.
+
+**Fixed:** `rate_limited_result()` inspects a returned answer for quota markers and treats
+it as an infrastructure failure to retry. The 19 rows were **deleted, not kept**, because
+unlike the pre-fix F-26 rows they are not evidence of anything about the product — they
+record our tier.
+
+**The general lesson:** a harness that only catches exceptions will silently score every
+failure mode the system reports *gracefully*. Graceful degradation and measurement are in
+tension, and the measurement side has to know every shape the degradation can take.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.

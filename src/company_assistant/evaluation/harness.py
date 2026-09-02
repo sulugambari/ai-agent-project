@@ -187,9 +187,32 @@ class ResultStore:
         return out
 
 
+#: Markers of a quota event, wherever it surfaces.
+_RATE_LIMIT_MARKERS = ("429", "rate limit", "rate_limit", "ratelimiterror",
+                       "too many requests", "quota")
+
+
 def _is_rate_limit(exc: BaseException) -> bool:
-    text = f"{type(exc).__name__} {exc}".lower()
-    return "429" in text or "rate limit" in text or "rate_limit" in text
+    return any(m in f"{type(exc).__name__} {exc}".lower() for m in _RATE_LIMIT_MARKERS)
+
+
+def rate_limited_result(result: AskResult) -> bool:
+    """True when an *returned* answer is really a quota event, not a behaviour.
+
+    The product does not raise on a rate limit: it returns
+    `Answer(status="error")` saying so, because T-07 requires reporting an outage
+    honestly rather than fabricating an answer. That is correct product behaviour
+    and it defeated the retry path here - the exception never propagated, so a
+    quota event was recorded as a scored behavioural result.
+
+    That is precisely the failure D-009 forbids: "an evaluation that counts a 429
+    as a behavioural failure measures the quota, not the model." Nineteen rows
+    were scored that way before this check existed.
+    """
+    if result.answer.status != "error":
+        return False
+    blob = f"{result.answer.text} {' '.join(result.answer.trace)}".lower()
+    return any(m in blob for m in _RATE_LIMIT_MARKERS)
 
 
 def score(case: Case, result: AskResult, *, corpus_ids: dict[str, frozenset[str]]) -> dict[str, Any]:
@@ -276,6 +299,13 @@ class Harness:
     results_path: Path = DEFAULT_RESULTS_PATH
     max_retries: int = 4
     base_backoff_s: float = 8.0
+    #: Seconds to wait between turns. The binding free-tier limit is
+    #: tokens-per-minute, not a daily cap: after a burst of agent turns exhausted
+    #: it, a single small completion succeeded immediately. Agent turns are
+    #: token-heavy because tool output enters the context, so pacing keeps the run
+    #: under TPM. Cheaper than repeatedly hitting a 429 and backing off, and it
+    #: makes the run finish rather than stall.
+    pace_s: float = 15.0
     store: ResultStore = field(init=False)
     _services: dict[str, AssistantService] = field(default_factory=dict, init=False)
 
@@ -299,6 +329,18 @@ class Harness:
                 if variant == "lexical_baseline":
                     return service.ask_baseline(case.question, case.employee), meta
                 result = service.ask(case.question, case.employee, conversation_id=None)
+                # A returned rate-limit error is infrastructure, not behaviour. The
+                # product reports the outage honestly (T-07) rather than raising, so
+                # it has to be recognised here or the quota gets scored as a result.
+                if rate_limited_result(result):
+                    if attempt < self.max_retries:
+                        wait = self.base_backoff_s * (2 ** (attempt - 1))
+                        meta["rate_limit_waits"] += 1
+                        meta["rate_limit_wait_s"] += wait
+                        time.sleep(wait)
+                        continue
+                    meta["infra_failure"] = "rate limited after all retries"
+                    return None, meta
                 # F-22: an empty answer means our token budget failed, not the model.
                 if not result.answer.text.strip():
                     meta["infra_failure"] = "empty answer text (likely truncation)"
@@ -340,6 +382,9 @@ class Harness:
                         if progress:
                             print(f"  skip {key}")
                         continue
+                    # Pace only the model-backed variants; the baseline has no quota.
+                    if variant != "lexical_baseline" and produced:
+                        time.sleep(self.pace_s)
                     started = time.perf_counter()
                     result, meta = self._ask(case, variant)
                     wall_s = time.perf_counter() - started
