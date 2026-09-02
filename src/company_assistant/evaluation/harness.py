@@ -240,6 +240,12 @@ def score(case: Case, result: AskResult, *, corpus_ids: dict[str, frozenset[str]
                             if answer.action_proposal else None),
         "proposal_status": (answer.action_proposal.status
                             if answer.action_proposal else None),
+        # Stored so step 8.5 can analyse a failure without re-running the turn.
+        # Re-asking to recover text would spend quota we do not have (F-21), and a
+        # verdict with no transcript is not reviewable evidence. Truncated, because
+        # the point is to read the behaviour, not to archive prose.
+        "answer_text": answer.text[:1500],
+        "trace": list(answer.trace),
         "latency_ms": round(result.latency_ms, 1),
         "tool_calls": sum(1 for line in answer.trace if line.strip().startswith(tuple("123456"))),
     }
@@ -319,8 +325,15 @@ class Harness:
         corpus = corpus_index()
         done = self.store.completed()
         produced: list[dict[str, Any]] = []
+        # Tier A first, deliberately. On a constrained tier a partial run is the
+        # expected outcome, not the exception (F-21), so the order decides what we
+        # end up holding. Tier A carries the four release blockers and every
+        # variance-sensitive verdict: Tier A complete is a usable evaluation, Tier A
+        # half-finished is not. Within a tier the order is stable so a resumed run
+        # is reproducible.
+        ordered = sorted(cases, key=lambda c: (tier_of(c.case_id) != "A", c.case_id))
         for variant in variants:
-            for case in cases:
+            for case in ordered:
                 for run_index in range(1, repeats_for(case.case_id, variant) + 1):
                     key = ResultStore.key(case.case_id, variant, run_index)
                     if key in done:
