@@ -65,7 +65,7 @@ def search_work_items(
     try:
         board = board_retriever.search(query, employee, limit=limit)
         candidate_ids.extend(board.candidate_ids)
-        board_evidence = evidence_from_outcome(board)
+        board_evidence = evidence_from_outcome(board, query)
         if board_evidence:
             namespaces.append(PROJECT_BOARD)
         evidence.extend(board_evidence)
@@ -76,7 +76,7 @@ def search_work_items(
             # Only the GitHub family from company knowledge: the rest of that
             # namespace is not work items and belongs to search_company_knowledge.
             export_evidence = [
-                item for item in evidence_from_outcome(export) if item.source_type == "github"
+                item for item in evidence_from_outcome(export, query) if item.source_type == "github"
             ]
             candidate_ids.extend(
                 source_id for source_id in export.candidate_ids if source_id.startswith("GH-")

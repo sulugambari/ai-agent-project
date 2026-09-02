@@ -8,6 +8,7 @@ from company_assistant.models import EmployeeContext
 from company_assistant.rag import COMPANY_KNOWLEDGE, DEFAULT_LIMIT, Retriever
 from company_assistant.rag.contract import RetrievalOutcome
 from company_assistant.tools.conflicts import detect_conflicts
+from company_assistant.tools.relevance import classify, relevance_note, term_coverage
 from company_assistant.tools.schemas import EvidenceItem, KnowledgeSearchResult
 
 #: Excerpt width per result. Six results at this width keeps one turn's evidence
@@ -20,11 +21,15 @@ def _excerpt(content: str, width: int = EXCERPT_WIDTH) -> str:
     return shorten(" ".join(content.split()), width=width, placeholder=" ...")
 
 
-def to_evidence(document, score: float) -> EvidenceItem:
+def to_evidence(document, score: float, *, query: str = "") -> EvidenceItem:
     """Project a retrieved document onto the evidence envelope.
 
     Metadata the system asserts is kept structurally apart from `excerpt`, which
     is company content and therefore untrusted (T-01).
+
+    `term_coverage` is measured over the FULL record, not the truncated excerpt:
+    a relevance measure that changed with the excerpt width would be a measure of
+    formatting, not of relevance.
     """
     return EvidenceItem(
         source_id=document.source_id,
@@ -36,12 +41,15 @@ def to_evidence(document, score: float) -> EvidenceItem:
         source_freshness=str(document.metadata.get("source_freshness", "local")),
         namespace=str(document.metadata.get("namespace", "")),
         score=round(score, 4),
+        term_coverage=round(term_coverage(query, f"{document.title} {document.content}"), 4)
+        if query
+        else 0.0,
         excerpt=_excerpt(document.content),
     )
 
 
-def evidence_from_outcome(outcome: RetrievalOutcome) -> list[EvidenceItem]:
-    return [to_evidence(result.document, result.score) for result in outcome.results]
+def evidence_from_outcome(outcome: RetrievalOutcome, query: str = "") -> list[EvidenceItem]:
+    return [to_evidence(result.document, result.score, query=query) for result in outcome.results]
 
 
 def search_company_knowledge(
@@ -76,7 +84,7 @@ def search_company_knowledge(
             reason=f"Retrieval failed ({type(exc).__name__}). Treat this as unknown, not as absence of evidence.",
         )
 
-    evidence = evidence_from_outcome(outcome)
+    evidence = evidence_from_outcome(outcome, query)
 
     # Defence in depth for F-13. The retriever is namespace-scoped so live board
     # issues cannot reach here; if that ever changes, contamination must surface
@@ -107,6 +115,14 @@ def search_company_knowledge(
         )
 
     conflicts = detect_conflicts(evidence)
+
+    # The retriever cannot report irrelevance: min-max normalisation gives the
+    # best permitted record a score of 1.0 whatever the question, so a result set
+    # always looks confident. The absolute measure is added here instead.
+    max_coverage = max((item.term_coverage for item in evidence), default=0.0)
+    relevance = classify(max_coverage)
+    notes.append(relevance_note(relevance, max_coverage))
+
     return KnowledgeSearchResult(
         status="ok",
         query=query,
@@ -114,6 +130,8 @@ def search_company_knowledge(
         candidate_ids=list(outcome.candidate_ids),
         conflict_detected=bool(conflicts),
         conflicts=conflicts,
+        relevance=relevance,
+        max_term_coverage=round(max_coverage, 4),
         retrieval_mode=outcome.mode,
         latency_ms=round(outcome.latency_ms, 1),
         index_status=outcome.index_status.describe(),

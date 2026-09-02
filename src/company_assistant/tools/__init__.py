@@ -13,6 +13,8 @@ from company_assistant.tools.conflicts import (CURRENT_STATUSES, SUPERSEDED_STAT
                                                detect_conflicts, id_family, is_current,
                                                is_superseded)
 from company_assistant.tools.knowledge import search_company_knowledge, to_evidence
+from company_assistant.tools.relevance import (STOPWORDS, WEAK_COVERAGE_THRESHOLD,
+                                                classify, content_terms, term_coverage)
 from company_assistant.tools.registry import (DECIDED_LEXICAL_WEIGHT, Toolset,
                                               build_toolset)
 from company_assistant.tools.schemas import (ComparisonVerdict, ConflictHint, EvidenceItem,
@@ -35,7 +37,9 @@ __all__ = [
     "KnowledgeSearchResult",
     "ProposalResult",
     "REQUIRED_PAYLOAD",
+    "STOPWORDS",
     "SUPERSEDED_STATUSES",
+    "WEAK_COVERAGE_THRESHOLD",
     "SourceComparison",
     "SupportCase",
     "SupportCaseResult",
@@ -43,7 +47,9 @@ __all__ = [
     "Toolset",
     "WorkItemSearchResult",
     "build_toolset",
+    "classify",
     "compare_sources",
+    "content_terms",
     "detect_conflicts",
     "get_support_case",
     "id_family",
@@ -54,5 +60,6 @@ __all__ = [
     "render_preview",
     "search_company_knowledge",
     "search_work_items",
+    "term_coverage",
     "to_evidence",
 ]

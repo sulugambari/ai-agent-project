@@ -1,0 +1,1 @@
+Retrieval score cannot express irrelevance — unanswerable questions score 1.0. Absolute term coverage separates answerable (>=0.33) from unanswerable (<=0.25).

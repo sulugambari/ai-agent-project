@@ -1,0 +1,1 @@
+All 5 tools answer normal, denied, empty and failure input with distinct typed statuses: 24 direct calls, 24 pass, 0 exceptions escape a tool.
