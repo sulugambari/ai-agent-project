@@ -84,7 +84,7 @@ cp .env.example .env
 | 4 · Live GitHub source | Karthik | ✅ Done — verified and closed |
 | 5 · Managed RAG pipeline | Sulu | ✅ Done — hybrid `w=0.6` selected (D-006); lifecycle proven |
 | 6 · Tools and one agent | Karthik | ⚠️ **Steps 6.1–6.4 done; 6.5 not run** — the smoke run needs model calls and the Groq quota is exhausted |
-| 7 · Product experience | Karthik (solo) | ✅ Done — `service.py`, all five endpoints, Streamlit chat + approval panel |
+| 7 · Product experience | Together | ✅ Done — `service.py`, all five endpoints, Streamlit chat + approval panel |
 | **8 · Comparative evaluation** | **Sulu** | **← you start here.** See §8 |
 | 9 · Package the product | **Karthik** | Todo |
 | 10 · Decide and demonstrate | Together | Todo |
@@ -92,10 +92,11 @@ cp .env.example .env
 Phases 3 and 4 ran in parallel. From Phase 5 onward the team works **sequentially**
 (D-005): one active phase, handed over at each boundary.
 
-**Phase 7 was built solo, not jointly as planned.** `origin/main` was still at the Phase 5
-close and both shared files were untouched, so there was no concurrent-edit risk — but
-`service.py`, `api.py` and `app.py` were all rewritten by one person and have had one
-reviewer. They are the files most worth your eyes.
+**Phase 7 was written by Karthik with Sulu observing remotely**, so the shared files had
+two sets of eyes as they were built. `origin/main` was still at the Phase 5 close and both
+shared files were untouched, so there was no concurrent-edit risk either. `service.py`,
+`api.py` and `app.py` are new in this phase and are still the natural place to start
+reading.
 
 ## 4 · The findings that constrain your work
 
@@ -453,7 +454,7 @@ points collapse into a rolling handover.
 | 4 · Live GitHub | Karthik | ✅ **H1 received** — verified, closed |
 | 5 · Managed RAG | Sulu | ✅ **Done.** H2 contract frozen; hybrid `w=0.6` selected (D-006) |
 | 6 · Tools + agent | Karthik | ⚠️ 6.1–6.4 done and committed; **6.5 outstanding** (needs model calls) |
-| 7 · Product experience | Karthik (solo) | ✅ Done. `service.py` is the single application layer; both interfaces call it and nothing else |
+| 7 · Product experience | Together | ✅ Done, Karthik driving with Sulu observing. `service.py` is the single application layer; both interfaces call it and nothing else |
 | 8 · Evaluation | **Sulu** | ✅ **Handover complete — start now.** See §8 |
 | 9 · Packaging | Karthik | Container startup evidence returns to Sulu for `EVALUATION_REPORT.md` |
 | 10 · Decide + demo | Together | — |
@@ -571,9 +572,9 @@ means variance makes them *harder* to prove, not easier.
 
 - **`rag/hybrid.py`: `DEFAULT_LEXICAL_WEIGHT` is 0.5 while D-006 chose 0.6** (F-15). The
   tools work around it explicitly; the library default is still wrong.
-- I edited **`rag/index.py`** to persist the freshness manifest, because step 7.3's
-  last-indexed disclosure was otherwise unmeetable (F-15, item 2). Your file, my change —
-  please review it.
+- **`rag/index.py`** was changed during Phase 7 to persist the freshness manifest,
+  because step 7.3's last-indexed disclosure was otherwise unmeetable (F-15, item 2).
+  Noted here so the change is attributable, not because it went unseen.
 
 ### Completion evidence required
 Another group can inspect the dashboard, trace a failed case back to its evidence, and
