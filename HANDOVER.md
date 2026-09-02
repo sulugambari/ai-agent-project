@@ -317,6 +317,13 @@ never exercised by something that needed it to be true.
    defaulted each namespace to `local`, asserting "committed fixture" over data that was
    really live or a degraded fallback. A disclosure claim wrong by construction (F-12,
    T-07). Now persisted to `data/index/freshness_manifest.json`.
+
+   **Verified across processes on 2 September**, with one operational consequence: the
+   manifest is written by a *sync*, so an index built before this fix still reports
+   `indexed never` and defaults every namespace to `local` until something re-syncs —
+   exactly the false disclosure the fix exists to prevent. **Phase 8 must re-sync before
+   measuring** rather than trusting whatever the store happens to report. After one sync a
+   fresh process correctly reads `project_board live` with the true timestamp.
 3. **Hybrid retrieval cannot express irrelevance** — see F-16.
 
 The general lesson: **state held only in memory becomes a false disclosure the moment a
