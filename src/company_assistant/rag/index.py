@@ -179,6 +179,15 @@ class VectorIndex:
         self._freshness: dict[str, SourceFreshness] = {}
         self._last_indexed: datetime | None = None
 
+    @property
+    def embedding_function(self) -> EmbeddingFunction:
+        """Exposed so a second index can share the loaded model.
+
+        Constructing a new VectorIndex otherwise reloads ~90 MB from disk, which
+        makes an isolated lifecycle test needlessly slow.
+        """
+        return self._embed
+
     def collection(self, namespace: Namespace):
         return self._client.get_or_create_collection(
             name=namespace,

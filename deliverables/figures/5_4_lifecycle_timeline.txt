@@ -1,0 +1,1 @@
+The full lifecycle on an isolated index. Step 4 is the case no supplied evaluation covers: allowed_roles is tightened while content stays byte-identical, and the record becomes invisible to Engineering on the next sync. A content-only chunk hash would have left the old policy serving it.
