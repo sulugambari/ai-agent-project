@@ -75,6 +75,31 @@ _HYPHEN_LOOKALIKES = str.maketrans({
 })
 
 
+#: Punctuation the models substitute for ASCII. U+2019 is the one that mattered:
+#: gpt-oss refuses with "I can't provide that information" using a curly
+#: apostrophe, and every literal in the abstention list spells it ASCII.
+_PUNCTUATION_LOOKALIKES = str.maketrans({
+    "\u2018": "'", "\u2019": "'", "\u02bc": "'", "\u00b4": "'",
+    "\u201c": '"', "\u201d": '"',
+    "\u2013": "-", "\u2014": "-", "\u2011": "-", "\u2212": "-",
+    "\u00a0": " ", "\u2026": "...",
+})
+
+
+def normalize_prose(text: str) -> str:
+    """Fold typographic punctuation to ASCII before matching phrases in prose.
+
+    The same failure as F-20, one layer up. F-20 was U+2011 hyphens voiding every
+    citation because id matching compared ASCII. This is U+2019 apostrophes voiding
+    a REFUSAL, because the abstention markers are spelled ASCII while the model
+    writes "can't" with a curly apostrophe. A correct, well-worded refusal that
+    also reported an injection attack was therefore labelled `answered`.
+
+    Anything that reads meaning out of generated prose has to normalise it first.
+    """
+    return text.translate(_PUNCTUATION_LOOKALIKES)
+
+
 def normalize_for_id_matching(text: str) -> str:
     """Fold hyphen look-alikes to ASCII so source ids can be recognised."""
     return text.translate(_HYPHEN_LOOKALIKES)
@@ -248,10 +273,40 @@ _ABSTENTION_MARKERS = (
 )
 
 
-def _reads_as_abstention(text: str) -> bool:
-    lowered = normalize_for_id_matching(text).lower()
-    return any(marker in lowered for marker in _ABSTENTION_MARKERS)
+#: Pairs an inability or prohibition with an action the employee asked for.
+#: Deliberately broad on the inability side and narrow on the action side, so it
+#: fires on "I can't share that" and "not permitted to disclose" but not on
+#: ordinary prose that merely contains "cannot".
+_REFUSAL_PATTERN = re.compile(
+    r"(?:can(?:'|)?t|cannot|can not|won(?:'|)?t|unable to|not able to|"
+    r"not permitted|not authori[sz]ed|no permitted evidence|not allowed)"
+    r"[^.]{0,60}?"
+    r"(?:provide|share|disclose|show|reveal|access|retrieve|find|locate|answer|comply)"
+)
 
+
+def _reads_as_abstention(text: str) -> bool:
+    """True when the answer declines, refuses, or reports having found nothing.
+
+    Two mechanisms, deliberately. The literal list stays because it documents the
+    exact phrasings the models have actually produced. The regex is added because
+    a list of literals cannot keep up with wording: it already missed
+    "can't provide" while holding "cannot provide", which cost a correct refusal
+    its status. The regex pairs an inability verb with an action verb, which
+    generalises across contractions, negations and orderings.
+
+    Both run over NORMALISED prose, so typographic punctuation cannot defeat them.
+
+    The asymmetry Karthik recorded still holds and is why this is safe: matching
+    can only ever downgrade a status to `insufficient_evidence`, never promote a
+    refusal to `answered`. A false positive makes a real answer look cautious; a
+    miss makes a refusal look like an answer, and only the second misleads an
+    employee.
+    """
+    normalized = normalize_prose(text).lower()
+    if any(marker in normalized for marker in _ABSTENTION_MARKERS):
+        return True
+    return bool(_REFUSAL_PATTERN.search(normalized))
 
 def _citations(records: list[TurnRecord], text: str) -> tuple[list[Citation], list[str]]:
     """Resolve cited ids against what was actually retrieved.
