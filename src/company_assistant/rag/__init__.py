@@ -22,15 +22,19 @@ from company_assistant.rag.index import (
     revision_fingerprint,
     role_filter,
 )
+from company_assistant.rag.hybrid import (DEFAULT_LEXICAL_WEIGHT, HybridRetriever,
+                                          ScoreBreakdown)
 from company_assistant.rag.lexical import LexicalRetriever
 from company_assistant.rag.semantic import SemanticRetriever
 
 __all__ = [
     "ALL_ROLES",
     "COMPANY_KNOWLEDGE",
+    "DEFAULT_LEXICAL_WEIGHT",
     "DEFAULT_LIMIT",
     "EMBEDDING_MODEL",
     "Freshness",
+    "HybridRetriever",
     "IndexStatus",
     "LexicalRetriever",
     "Namespace",
@@ -38,6 +42,7 @@ __all__ = [
     "RetrievalOutcome",
     "Retriever",
     "SemanticRetriever",
+    "ScoreBreakdown",
     "SourceFreshness",
     "SyncReport",
     "UnsupportedRetrievalMode",

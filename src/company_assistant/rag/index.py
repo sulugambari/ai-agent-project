@@ -293,6 +293,27 @@ class VectorIndex:
         found = self.collection(namespace).get(where=role_filter(role), include=["metadatas"])
         return tuple(str(m["source_id"]) for m in (found.get("metadatas") or []))
 
+    def permitted_documents(
+        self, namespace: Namespace, role: EmployeeRole
+    ) -> tuple[CompanyDocument, ...]:
+        """Every record this role may see in this namespace, rebuilt in full.
+
+        Used by the hybrid retriever so that BOTH signals are computed over the
+        same permitted set read from the same store. Deriving the lexical
+        candidate set from a separate in-memory list would introduce a confound
+        into the Phase 8 comparison: a mode could then appear better simply
+        because it saw a different corpus.
+        """
+        found = self.collection(namespace).get(
+            where=role_filter(role), include=["documents", "metadatas"]
+        )
+        documents = found.get("documents") or []
+        metadatas = found.get("metadatas") or []
+        return tuple(
+            from_metadata(dict(metadata), str(content))
+            for content, metadata in zip(documents, metadatas, strict=True)
+        )
+
     def query(
         self,
         text: str,

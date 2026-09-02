@@ -1,0 +1,1 @@
+Each result's hybrid score decomposed into its lexical and semantic halves, so the product can explain why a record ranked where it did. GH-142, the actual release blocker, is carried by its lexical signal and dragged down by a weak semantic one.

@@ -1,0 +1,1 @@
+recall@6 is 1.000 for every mode and every weight, so retrieval mode is not the lever on this 15-record corpus. Mean expected rank varies only between 2.27 and 2.53 across the whole sweep - within noise at five questions - and is non-monotonic, which is itself a sign of noise. The aggregate metric mildly prefers w=0.3-0.4 while the decision-critical GH-142 prefers w>=0.6.
