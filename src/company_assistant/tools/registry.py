@@ -25,7 +25,7 @@ from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field
 
 from company_assistant.database import DATABASE_PATH
-from company_assistant.models import EmployeeContext
+from company_assistant.models import EmployeeContext, RetrievalMode
 from company_assistant.rag import (COMPANY_KNOWLEDGE, DEFAULT_LIMIT, PROJECT_BOARD,
                                    HybridRetriever, Retriever, VectorIndex)
 from company_assistant.tools.actions import REQUIRED_PAYLOAD, propose_action
@@ -112,6 +112,7 @@ def build_toolset(
     database_path: Path = DATABASE_PATH,
     limit: int = DEFAULT_LIMIT,
     lexical_weight: float = DECIDED_LEXICAL_WEIGHT,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> Toolset:
     """Construct the five tools for exactly one employee.
 
@@ -142,7 +143,8 @@ def build_toolset(
 
     def _search_company_knowledge(query: str) -> str:
         return _serialize(
-            search_company_knowledge(query, employee, retriever=knowledge_retriever, limit=limit)
+            search_company_knowledge(query, employee, retriever=knowledge_retriever,
+                                     limit=limit, retrieval_mode=retrieval_mode)
         )
 
     def _search_work_items(query: str) -> str:
@@ -153,6 +155,7 @@ def build_toolset(
                 board_retriever=board_retriever,
                 export_retriever=knowledge_retriever,
                 limit=limit,
+                retrieval_mode=retrieval_mode,
             )
         )
 

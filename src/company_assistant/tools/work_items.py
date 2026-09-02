@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from company_assistant.models import EmployeeContext
+from company_assistant.models import EmployeeContext, RetrievalMode
 from company_assistant.rag import COMPANY_KNOWLEDGE, DEFAULT_LIMIT, PROJECT_BOARD, Retriever
 from company_assistant.tools.knowledge import evidence_from_outcome
 from company_assistant.tools.schemas import EvidenceItem, WorkItemSearchResult
@@ -36,6 +36,7 @@ def search_work_items(
     board_retriever: Retriever,
     export_retriever: Retriever | None = None,
     limit: int = DEFAULT_LIMIT,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> WorkItemSearchResult:
     """Search engineering work items, reporting namespace and freshness per hit.
 
@@ -63,7 +64,7 @@ def search_work_items(
     details: list[str] = []
 
     try:
-        board = board_retriever.search(query, employee, limit=limit)
+        board = board_retriever.search(query, employee, mode=retrieval_mode, limit=limit)
         candidate_ids.extend(board.candidate_ids)
         board_evidence = evidence_from_outcome(board, query)
         if board_evidence:
@@ -72,7 +73,7 @@ def search_work_items(
         details.append(f"{PROJECT_BOARD}: {len(board.candidate_ids)} permitted candidate(s)")
 
         if export_retriever is not None:
-            export = export_retriever.search(query, employee, limit=limit)
+            export = export_retriever.search(query, employee, mode=retrieval_mode, limit=limit)
             # Only the GitHub family from company knowledge: the rest of that
             # namespace is not work items and belongs to search_company_knowledge.
             export_evidence = [

@@ -451,6 +451,28 @@ the extracted citation list carried ASCII `DOC-ATLAS-403`.
 `agent.runner.normalize_for_id_matching` is doing real work on every turn, not guarding a
 hypothetical. Any Phase 8 scorer that parses ids out of prose must reuse it.
 
+### F-25 · The service had no way to select a retrieval mode, so the required comparison was not runnable
+`05` requires comparing three variants, but `AssistantService` hardcoded hybrid and
+`ServiceStatus.retrieval_mode` returned the literal string `"hybrid"` regardless. The
+semantic-with-agent variant could not be run at all through the service.
+
+Closed on 2 September by threading `retrieval_mode` through
+`service → build_agent → build_toolset → search_company_knowledge / search_work_items`,
+and **keying the agent cache by `(employee, mode)`** so switching variants cannot reuse an
+agent wired to the previous mode — which would have silently measured hybrid three times.
+
+Two deliberate constraints:
+
+* The **product default remains hybrid** (D-006). The parameter exists so the evaluation
+  runs through the same code path the product ships, rather than through a parallel wiring
+  that might not be what ships.
+* `ServiceStatus` now reports the mode it is **actually** configured with. It previously
+  asserted `"hybrid"` unconditionally, which is the same category of defect as F-15.2: a
+  disclosure that is wrong by construction.
+
+Verified: all three modes produce their expected different rankings through the service,
+and semantic still misses `GH-142` on EVAL-012 (F-14).
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.

@@ -33,7 +33,7 @@ from langchain_groq import ChatGroq
 from company_assistant.agent.prompt import SYSTEM_PROMPT
 from company_assistant.database import DATABASE_PATH
 from company_assistant.models import (ActionProposal, Answer, AnswerStatus, Citation,
-                                      EmployeeContext)
+                                      EmployeeContext, RetrievalMode)
 from company_assistant.rag import VectorIndex
 from company_assistant.tools import Toolset, build_toolset
 
@@ -100,13 +100,15 @@ def build_agent(
     model: str | None = None,
     database_path: Path = DATABASE_PATH,
     max_tool_calls: int = MAX_TOOL_CALLS,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> tuple[Any, Toolset]:
     """Create the agent for one employee, bounded and deterministic.
 
     The toolset is returned alongside it because the caller needs the same
     retrievers for the trace and for Phase 7's index-status disclosure.
     """
-    toolset = build_toolset(employee, index=index, database_path=database_path)
+    toolset = build_toolset(employee, index=index, database_path=database_path,
+                            retrieval_mode=retrieval_mode)
     llm = ChatGroq(model=model or os.getenv("GROQ_MODEL") or DEFAULT_MODEL, temperature=TEMPERATURE)
     agent = create_agent(
         llm,

@@ -31,7 +31,8 @@ from company_assistant.approval import (ApprovalError, ApprovalStore, ExecutionR
                                         Executor, simulated_executor)
 from company_assistant.connectors import load_all_documents
 from company_assistant.database import DATABASE_PATH
-from company_assistant.models import (ActionProposal, Answer, Citation, EmployeeContext)
+from company_assistant.models import (ActionProposal, Answer, Citation,
+                                       EmployeeContext, RetrievalMode)
 from company_assistant.rag import DEFAULT_INDEX_DIR, VectorIndex
 from company_assistant.retrieval import lexical_search
 from company_assistant.tools import DECIDED_LEXICAL_WEIGHT
@@ -170,6 +171,11 @@ class AssistantService:
     index_dir: Path = DEFAULT_INDEX_DIR
     database_path: Path = DATABASE_PATH
     model: str | None = None
+    #: Which retrieval mode the tools use. Kept configurable ONLY so Phase 8 can run
+    #: the three-variant comparison 05 requires through the same service the product
+    #: uses, rather than a parallel wiring that might not be the code path shipped.
+    #: The product default is hybrid (D-006).
+    retrieval_mode: RetrievalMode = "hybrid"
     feedback_path: Path | None = DEFAULT_FEEDBACK_PATH
     approvals: ApprovalStore = field(default_factory=ApprovalStore)
     _index: VectorIndex | None = field(default=None, init=False, repr=False)
@@ -193,12 +199,13 @@ class AssistantService:
         the toolset as a closure. Reusing one agent across employees is exactly
         the bug that binding was designed to prevent.
         """
-        if employee.employee_id not in self._agents:
-            self._agents[employee.employee_id] = build_agent(
+        if f'{employee.employee_id}:{self.retrieval_mode}' not in self._agents:
+            self._agents[f'{employee.employee_id}:{self.retrieval_mode}'] = build_agent(
                 employee, index=self.index(), model=self.model_name,
                 database_path=self.database_path,
+                retrieval_mode=self.retrieval_mode,
             )
-        return self._agents[employee.employee_id]
+        return self._agents[f'{employee.employee_id}:{self.retrieval_mode}']
 
     # -- asking --------------------------------------------------------------
     def ask(
@@ -337,7 +344,7 @@ class AssistantService:
             index_status = self.index().status()
             return ServiceStatus(
                 model=self.model_name,
-                retrieval_mode="hybrid",
+                retrieval_mode=self.retrieval_mode,
                 lexical_weight=DECIDED_LEXICAL_WEIGHT,
                 max_tool_calls=MAX_TOOL_CALLS,
                 index_units=index_status.unit_count,
@@ -355,7 +362,7 @@ class AssistantService:
             )
         except Exception as exc:  # noqa: BLE001 - status must answer even when broken
             return ServiceStatus(
-                model=self.model_name, retrieval_mode="hybrid",
+                model=self.model_name, retrieval_mode=self.retrieval_mode,
                 lexical_weight=DECIDED_LEXICAL_WEIGHT, max_tool_calls=MAX_TOOL_CALLS,
                 index_units=0, index_last_indexed="unknown", index_degraded=True,
                 agent_available=False,

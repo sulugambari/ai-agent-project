@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from textwrap import shorten
 
-from company_assistant.models import EmployeeContext
+from company_assistant.models import EmployeeContext, RetrievalMode
 from company_assistant.rag import COMPANY_KNOWLEDGE, DEFAULT_LIMIT, Retriever
 from company_assistant.rag.contract import RetrievalOutcome
 from company_assistant.tools.conflicts import detect_conflicts
@@ -58,6 +58,7 @@ def search_company_knowledge(
     *,
     retriever: Retriever,
     limit: int = DEFAULT_LIMIT,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> KnowledgeSearchResult:
     """Search Slack, email, documents and the local GitHub export.
 
@@ -74,7 +75,7 @@ def search_company_knowledge(
         )
 
     try:
-        outcome = retriever.search(query, employee, limit=limit)
+        outcome = retriever.search(query, employee, mode=retrieval_mode, limit=limit)
     except Exception as exc:  # noqa: BLE001 - a tool must degrade, never crash the turn
         # Reported as a controlled failure rather than an empty result: T-07 -
         # an infrastructure failure must never be presented as "nothing exists".
