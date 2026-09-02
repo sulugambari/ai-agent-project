@@ -1,13 +1,13 @@
 # Claude Code — Session Transcript
 
-Verbatim record of the working session that produced Phases 0–3 of the
+Verbatim record of the working session that produced Phases 0–5 of the
 Northstar Release Coordinator, for handover continuity.
 
 **How to read this.** Human turns and Claude's replies are reproduced in full.
 Tool calls are summarised to one line each — the full payloads (file contents,
-notebook JSON, command output) run to 8.4 MB and are preserved verbatim in
-`docs/chat-history-raw.jsonl` alongside this file. Claude's internal reasoning
-blocks are not included; they were never part of the visible conversation.
+notebook JSON, command output) are preserved verbatim in
+`docs/chat-history-raw.jsonl`. Claude's internal reasoning blocks are not
+included; they were never part of the visible conversation.
 
 Curated conclusions live in `HANDOVER.md` — read that first. This file is the
 primary source behind it.
@@ -2148,6 +2148,1038 @@ Structure is clear — the 7.57 MB of "user" entries are tool *results*, not hum
 <details><summary>Tool calls (1)</summary>
 
 - `Bash: Extract readable chat history`
+
+</details>
+
+### Claude
+
+120 KB, 21 turns, complete. Now preserving the raw transcript too, and checking inventory for accuracy:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Copy raw transcript and gather inventory`
+
+</details>
+
+### Claude
+
+Now the handover document itself:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Write HANDOVER.md`
+
+</details>
+
+### Claude
+
+Now Karthik's notebook shell, pre-wired with the harness he needs:
+
+<details><summary>Tool calls (3)</summary>
+
+- `Bash: Create Karthik's Phase 4 notebook`
+- `Bash: Link handover, commit and push`
+- `Bash: Post Phase 4 start-here brief and update board`
+
+</details>
+
+### Claude
+
+A backtick escaped my quoting and got executed as a command — the comment posted but with a mangled phrase. Let me check and fix:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Check the mangled line in the posted comment`
+- `Bash: Fix the mangled comment via API`
+
+</details>
+
+### Claude
+
+# ✅ Handover complete
+
+Repo is private, so everything is committed and pushed. Commit `c994615` — **11 commits on `origin/main`**, `.git` is 6.3 MB.
+
+## What Karthik gets from a single `git pull`
+
+| Artifact | What it is |
+|---|---|
+| **[`HANDOVER.md`](HANDOVER.md)** | 342 lines, 13 sections — the entry point |
+| **[`docs/CHAT_HISTORY.md`](docs/CHAT_HISTORY.md)** | Readable transcript: **all 21 human turns and my replies verbatim**, tool calls collapsed to one line each |
+| **`docs/chat-history-raw.jsonl`** | The verbatim 8.4 MB log — nothing lost |
+| **`notebooks/phase_04_live_github.ipynb`** | His own notebook, pre-wired, executes clean |
+| Board issue #5 | A "START HERE" brief with the seven settled constraints |
+
+`HANDOVER.md` covers: current state · five-command setup · **the ten measured findings** · decisions taken with reasons · non-negotiables and release blockers · the four handover points and the one real blocking dependency · file ownership · notebook policy · his full Phase 4 brief · working conventions · known gotchas · open questions · file map.
+
+**§4 is the part that earns the document.** Three findings change what his phases must do:
+
+- **F-2** — the archived policy outranks the current one, so **status-aware reasoning has to live in his Phase 6 agent**, not the retriever. Semantic search won't fix it.
+- **F-4** — a refusal isn't evidence of pre-retrieval filtering, so **his agent must expose the candidate set** per turn.
+- **F-5** — a content-only chunk hash would leave a re-permissioned record retrievable under its old policy.
+
+**On the transcript:** I excluded my internal reasoning blocks — they were never part of the visible conversation. Everything you and I actually said is there in full. Say the word if you want the reasoning included too.
+
+*Two things I'd flag honestly:* a stray backtick in my issue comment got shell-executed and swallowed a filename — spotted it, corrected the comment via the API. And the raw `.jsonl` adds 8.4 MB to clones; drop `docs/chat-history-raw.jsonl` if you'd rather keep the repo lean, since `CHAT_HISTORY.md` is only 120 KB and readable.
+
+---
+
+## Board state — Tuesday closed
+
+| Phase | Owner | Status |
+|---|---|---|
+| 0–3 | — | ✅ **Done** |
+| **4 · Live GitHub** | **Karthik** | **In Progress** — unblocked, briefed |
+| 5 · Managed RAG | Sulu | Todo (Wed) |
+| 6 · Tools + agent | Karthik | Todo (Wed) |
+| 7 · Product experience | Together | Todo (Wed eve) |
+| 8 · Evaluation | Sulu | Todo (Thu) |
+| 9 · Package | Karthik | Todo (Thu) |
+| 10 · Decide + demo | Together | Todo (Thu) |
+
+**Done so far:** 7 deliverables · 10 figures · 39 deck-ledger entries · 56 notebook cells executing clean · both `AGENTS.md` gates cleared.
+
+---
+
+## Two things before Wednesday
+
+**1. H2 is the 20 minutes that protect Wednesday.** Freeze the retriever signature with Karthik before either of you starts — otherwise he's blocked all morning:
+
+```python
+def search(query: str, employee: EmployeeContext, *,
+           mode: RetrievalMode = "hybrid", limit: int = 6) -> list[SearchResult]: ...
+```
+
+**2. Pre-download the embedding model tonight if you can.** Phase 5.2 pulls ~90 MB on first use. Doing it now means Wednesday morning doesn't start with a download stall.
+
+Ready to start **Phase 5** when you are — step 5.1 is the chunking-strategy comparison. Or if you'd rather I set up anything else for the parallel work first, say so.
+
+## Turn 22 · Sulu
+
+commit, push and merge
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Verify nothing outstanding to commit or push`
+
+</details>
+
+### Claude
+
+**Nothing to do — it's already all in.** Verified:
+
+| Check | Result |
+|---|---|
+| Working tree | **Clean** — no uncommitted or untracked changes |
+| Local vs remote | **0 ahead, 0 behind** — `main` and `origin/main` both at `c994615` |
+| Branches | Only `main`, tracking `origin/main` — **nothing to merge** |
+
+I committed and pushed as part of the handover in the previous step, so `c994615` is already on GitHub.
+
+On **"merge"** — there's genuinely nothing to merge, and I want to be clear why rather than just saying "done": we've worked directly on `main` throughout, so there has never been a feature branch. Every step went straight to trunk. That's why every "commit, push and merge" request collapses to just a push.
+
+*(The `fatal: Needed a single revision` line is harmless — my command asked `rev-parse` for two refs at once and it printed the SHA for `HEAD` then objected to the second argument. The `rev-list` and `branch -vv` checks below it confirm both refs match.)*
+
+**11 commits on `origin/main`.** Karthik can pull.
+
+Worth deciding if you want to change the workflow from here: with two people working in parallel from tomorrow, **branches per phase** would make each other's work reviewable before it lands, at the cost of some friction. Trunk-based is fine too — your file ownership barely overlaps — and the `.ipynb` split already removes the one real conflict risk. My recommendation is to **stay on trunk** and just pull frequently; branching would add ceremony without addressing an actual collision.
+
+Ready for **Phase 5, step 5.1** (chunking-strategy comparison) whenever you want to start.
+
+## Turn 23 · Sulu
+
+you can fo a got pull of the work Karthik has done so i can continue from where we stopped.
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Fetch and check for Karthik's commits`
+
+</details>
+
+### Claude
+
+Karthik has landed Phase 4. Pulling:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Pull Karthik's Phase 4 work`
+
+</details>
+
+### Claude
+
+Pulled clean (fast-forward). Let me review what he actually built, since Phase 5 depends on it:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Read Karthik's live connector`
+
+</details>
+
+### Claude
+
+Genuinely solid work — typed schema, explicit error classification, injectable client for network-free tests, fallback that never fabricates freshness. Let me review his documentation changes and check one interaction with my Phase 5 design:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Read D-003 and handover changes`
+
+</details>
+
+### Claude
+
+Karthik did careful work — and he **falsified one of my claims**. My `HANDOVER.md` said the repo was public and needed no token; mid-phase it wasn't, because a collaborator invite hadn't been accepted. He diagnosed it, recorded `D-003` with the abandoned detour included, and corrected my document. That's exactly right.
+
+Let me verify his connector actually works before I build Phase 5 on it:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Verify live connector against real API`
+
+</details>
+
+### Claude
+
+Live fetch works — 11 issues, engineering-only, freshness stamped. Now the two things Phase 5 depends on: fallback behaviour, and whether his records are stable under my chunk-ID scheme:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Test fallback and chunk-ID stability`
+
+</details>
+
+### Claude
+
+All four checks pass. But I found something that lands in **my** lane, not his:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Check board state and Karthik's doc updates`
+
+</details>
+
+### Claude
+
+Karthik closed the loop properly — steps ticked, `D-003` recorded, `SLIDE_DECK` entries added, and a nice touch in `ACCESS_MATRIX.md`: he noted our "policy stability if the repo goes private" reasoning was **vindicated**, because it actually went private mid-phase and the policy needed no change.
+
+He left the issue open, so let me close it — and record the integration problem I found, which is mine to solve in Phase 5:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Record F-12, close Phase 4, commit and push`
+
+</details>
+
+### Claude
+
+# Pulled — Phase 4 is in, verified, and closed
+
+Fast-forward from `c994615` → `36e745e`, then my verification commit `5c2c61b`. **13 commits on `main`.**
+
+## What Karthik delivered
+
+`src/company_assistant/connectors/github_live.py` (235 lines) — I verified it independently before building on it:
+
+| Check | Result |
+|---|---|
+| Live fetch, no token, real API | **11 issues**, engineering-only, `html_url` preserved |
+| Freshness stamped | `{'live'}` — batch level *and* per record |
+| Fallback on unreachable repo | 3 local records, all stamped `fallback`, reason disclosed |
+| Direct fetch on failure | **raises** `GitHubFetchError(reason='not_found')` |
+| `httpx` direct dependency | ✅ no GitHub SDK |
+| Stable ID independent of title | ✅ `GH-LIVE-<number>`, `node_id` in metadata |
+
+Design choices worth noting: a typed `GitHubFetchError` carrying a classified `reason` so callers compose honest disclosure without re-inspecting httpx; an injectable `client` for network-free tests; aborting the whole fetch rather than returning a partial page; and letting a *fallback* read failure propagate rather than swallowing it — at that point neither source is trustworthy, and hiding it would be the exact fabricated-freshness failure the step exists to prevent.
+
+## He corrected an error of mine
+
+My `HANDOVER.md` asserted the repo was public and needed no token. True when I checked it — but not mid-phase, because a collaborator invite hadn't been accepted, and `git ls-remote` succeeding over SSH proves nothing about REST access. He diagnosed it, recorded `D-003` including the abandoned detour, and generalised it to **F-11: verify visibility, never inherit it from a document.**
+
+He also spotted that our "policy stability if the repo goes private" reasoning was **vindicated rather than hypothetical** — it really did go private, and the access policy needed no change because it was never derived from visibility.
+
+## One problem I found — and it's mine, not his
+
+**Live and fallback records occupy disjoint ID spaces:**
+
+| Path | IDs | |
+|---|---|---|
+| Live | `GH-LIVE-1` … `GH-LIVE-11` | 11 |
+| Fallback | `GH-131`, `GH-142`, `GH-149` | 3 |
+| **Overlap** | **none** | |
+
+A manifest diff treating "GitHub work items" as one synchronized set would, on a transient API failure, **delete all 11 live chunks**, add 3 fallback chunks, then reverse it on the next success. That thrashes the index *and amplifies the outage* — during the fallback window a query returns **nothing**, because the chunks were deleted rather than left stale. **Stale-but-disclosed is strictly better than absent.**
+
+Not a connector defect. An index-lifecycle decision, recorded as **F-12** with the mitigation: a degraded batch may never drive deletions, the manifest diff is scoped per successfully-synchronized source, and fallback is a serving path not an indexing path. Posted as a constraint on issue #6.
+
+I also verified a property 5.4 must not break: **the chunk fingerprint is stable across consecutive live fetches** — `fetched_at` changes every call but doesn't leak into the fingerprint, so a sync won't re-index the whole live source.
+
+---
+
+## Where we are — Tuesday complete, both lanes
+
+| Phase | Owner | Status |
+|---|---|---|
+| 0–3 | Sulu / Together | ✅ Done |
+| 4 · Live GitHub | Karthik | ✅ **Done** |
+| **5 · Managed RAG** | **Sulu** | **← you resume here** |
+| 6 · Tools + agent | Karthik | Todo |
+| 7–10 | | Todo |
+
+**5 of 11 phases closed.** 11 figures, 44 ledger entries, 3 decisions, 12 findings.
+
+---
+
+## → Next: Phase 5, step 5.1 — compare two chunking strategies
+
+Before that, **H2 is due** — the 20-minute retriever-signature freeze with Karthik, or he's blocked on Phase 6 this morning:
+
+```python
+def search(query: str, employee: EmployeeContext, *,
+           mode: RetrievalMode = "hybrid", limit: int = 6) -> list[SearchResult]: ...
+```
+
+**Step 5.1** would implement two chunking strategies (whole-record vs source-aware splitting) and compare them on the priority questions — keeping the simplest one the evidence supports, per `04`.
+
+Worth knowing before we start: with 15 short records, **whole-record chunking may well win**, and that would be a legitimate result rather than a failure to optimise. Also, Phase 5.2 pulls the ~90 MB embedding model on first use — did you get a chance to pre-download it?
+
+Shall I start 5.1, or do H2 with Karthik first?
+
+## Turn 24 · Sulu
+
+do which you feel is e best to start with
+
+### Claude
+
+**H2 first.** Reasoning: it costs me under an hour and unblocks Karthik's entire Wednesday, whereas 5.1 is work nobody is waiting on. And delivering the contract in *writing and code* is better than a meeting — it's versioned and reviewable, and it disciplines my own Phase 5 implementation to build against a contract rather than discover one.
+
+Let me first check what the contract actually has to support, given our findings:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Check existing surfaces before defining the contract`
+
+</details>
+
+### Claude
+
+Contract designed against our own findings rather than guessed. One honest change: **I'm revising the signature I gave Karthik in `HANDOVER.md`** — `list[SearchResult]` can't carry the candidate set (F-4) or freshness disclosure (F-12), so it becomes a richer return with `.results` for tool use.
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Create the H2 retrieval contract and lexical adapter`
+
+</details>
+
+### Claude
+
+Now verifying it actually satisfies the contract, including the security property Karthik's tools will depend on:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Verify contract conformance and security property`
+
+</details>
+
+### Claude
+
+Contract works — but the trace exposed something important. Look at the top result for our flagship question: **`GH-LIVE-2` outranked `GH-142`.** That's our own *"Phase 1 · Frame the Product"* board issue. Let me quantify:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Quantify contamination from live board issues`
+
+</details>
+
+### Claude
+
+That's a serious finding, and it originates in **my** repo recommendation. **16 of 30 top-6 slots** across our five key questions are now occupied by our own board issues — EVAL-012 is 5/6. Recording it and delivering H2:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Record F-13, commit contract, push`
+- `Bash: Post H2 to Karthik and update handover`
+
+</details>
+
+### Claude
+
+# H2 delivered — Karthik unblocked. And I found a problem I caused.
+
+I chose **H2 over 5.1** because it costs me under an hour and removes a whole-day block for Karthik, while 5.1 blocks nobody. Delivered as **committed code plus a written contract on issue #7** rather than a meeting — versioned, reviewable, and it doesn't require you both to be free at the same moment.
+
+## What shipped: `src/company_assistant/rag/`
+
+```python
+retriever: Retriever = LexicalRetriever(documents)   # real, working, today
+outcome = retriever.search(query, employee, mode="lexical", limit=6)
+outcome.results          # what your tool returns
+outcome.candidate_ids    # what was CONSIDERED  ← the trace evidence
+outcome.trace_lines()    # ready-made trace
+outcome.index_status     # freshness, for disclosure
+```
+
+`LexicalRetriever` is a **working implementation, not a stub** — it wraps the supplied baseline unchanged. At H3 the hybrid retriever swaps in behind the same Protocol with **zero tool changes**.
+
+**Two deliberate changes from what I'd promised Karthik**, both driven by our findings rather than taste:
+
+1. **The return is richer than `list[SearchResult]`** — the signature I gave him can't carry the candidate set. F-4 established a refusal can't prove pre-retrieval filtering, so `RetrievalOutcome` separates *considered* from *returned*. A record absent from `results` may just have ranked low; a record absent from `candidate_ids` **was never visible to that employee**.
+2. **An unsupported mode raises** instead of downgrading — a retriever quietly serving lexical results labelled `hybrid` would corrupt the Phase 8 comparison that picks our default.
+
+Verified before handing over: Protocol conforms at runtime; `DOC-HR-001` isn't even a *candidate* for any role but People Ops; live records arrive carrying their `html_url`; freshness propagates from Karthik's connector into `IndexStatus.degraded`.
+
+## The problem — F-13, and it's mine
+
+Merging the live board issues into the searchable corpus **poisons company-knowledge retrieval**:
+
+| Question | Top-6 slots taken by our own board issues |
+|---|---|
+| P1 release readiness | 3/6 — **`GH-LIVE-2` ranks first**, above `DOC-ATLAS-403` and `GH-142` |
+| EVAL-002 | 4/6 |
+| EVAL-012 | **5/6** |
+| **Total across 5 questions** | **16/30** |
+
+`GH-LIVE-2` is *"Phase 1 · Frame the Product"*. It wins the Atlas question because it discusses Atlas release coordination **as a product decision**. Our board issues describe the product we're building, so they carry the same vocabulary as the evidence they sit beside.
+
+**This is worse than noise.** The agent could cite an issue about *building the assistant* as evidence about Atlas's actual release status — fabricated evidence wearing a valid citation, which a naive "is every claim cited?" check would pass.
+
+**The repo choice was my recommendation.** I argued for it on access grounds — guaranteed for both of you, no token — and never considered content contamination. `HANDOVER.md` §8 noted the adjacent point (live issues are meta, so EVAL-012's ids exist only locally) but framed it as a coverage gap rather than active poisoning. The stronger consequence only appears once you merge and measure.
+
+## The decision I need from you — D-004
+
+**My recommendation: separate retrieval namespaces.** Live board issues get their own collection, reached via a dedicated work-item tool and **excluded from `search_company_knowledge`**.
+
+| | |
+|---|---|
+| Keeps Phase 4's evidence intact | a real live issue can still be cited, fallback still disclosed |
+| Costs no rework | Karthik's connector is unaffected |
+| Not a workaround | a company's engineering board and its knowledge base *are* different corpora with different query intents — this is correct information architecture |
+
+The alternative — switching the live source — contradicts `D-003`, loses guaranteed access, and we already abandoned that detour once.
+
+**Do you want me to record D-004 as separate namespaces and proceed to 5.1 on that basis?** Karthik can build his other four tools meanwhile; I've told him so on #7.
+
+## Turn 25 · Sulu
+
+ok but it is best we work sequentially and on simultaneously.
+so i will work on  it now and then pass it over to Karthik when when we reach his part
+
+### Claude
+
+Reading that as: **yes to D-004** (separate namespaces), and switch the working model to **sequential**. Recording both.
+
+One trade-off worth stating once, then I'll proceed as you've decided: Wednesday was the heaviest day *because* 5 and 6 ran in parallel. Sequential puts 5 → 6 → 7 on one day. The mitigation is already in place — the H2 contract means Karthik can start the moment Phase 5 lands, and four of his five tools never needed Phase 5 anyway. So if Wednesday tightens, releasing him early is available without rework.
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Record D-004 and D-005`
+
+</details>
+
+### Claude
+
+Now updating the plan docs and telling Karthik to hold, so he doesn't build against stale assumptions:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Record sequential model, notify Karthik to hold`
+
+</details>
+
+### Claude
+
+## Recorded — sequential from here, and D-004 accepted
+
+Two decisions logged, docs updated, Karthik told to hold.
+
+**`D-004` — two retrieval namespaces:**
+
+| Namespace | Contents | Reached by |
+|---|---|---|
+| `company_knowledge` | Slack, email, documents, **local** GitHub export | `search_company_knowledge` — must never return `GH-LIVE-*` |
+| `project_board` | The **live** GitHub issues | separate work-item tool, reports namespace + freshness |
+
+**It also closes F-12 for free.** Scoping the index manifest per namespace means a degraded live fetch can no longer authorise deletions of local GitHub chunks — they're no longer one synchronized set. One mitigation, two findings resolved.
+
+**`D-005` — sequential**, with the schedule consequence written down rather than discovered later. I also reversed my own instruction to Karthik: my H2 comment told him to start four tools immediately, and I've asked him to disregard that. Nothing he's done is wasted; the contract stands. I pointed him at F-2 (the archived-policy finding) as useful *reading* meanwhile, since status-aware reasoning lands in his Phase 6 lane.
+
+**16 commits on `main`.** 5 of 11 phases closed.
+
+---
+
+## → Next step: 5.1 — Compare two chunking strategies
+
+**Where we are:** the retrieval contract is frozen, both corpora are defined, and we know from F-2 exactly which failure retrieval *cannot* fix.
+
+**What we're about to do:** implement two chunking strategies and compare them on the priority questions, keeping the simplest one the evidence supports:
+
+| Strategy | Approach |
+|---|---|
+| **A · Whole-record** | One unit per `CompanyDocument`. Citations map 1:1 to sources |
+| **B · Source-aware** | Split by structure — policy clauses, Slack message bodies, issue body vs. metadata header — with the parent `source_id` retained on every chunk |
+
+Measured on: whether expected evidence appears, precision at 6, unit counts, and index size.
+
+**Why:** `04` requires comparing at least two chunking choices and *keeping the simplest one supported by evidence*. It's also the decision that determines what a citation points at — a whole-record citation says "this document", a chunk citation says "this clause", and the second is more useful only if it stays resolvable.
+
+**A prediction I'd rather state up front than quietly confirm:** our records are *short* — most are a few hundred characters. **Whole-record chunking may well win**, and that would be a legitimate, reportable result rather than a failure to optimise. `04` explicitly asks us to keep the simplest option the evidence supports. If B wins, it'll be on the two long-ish documents (`DOC-ATLAS-403`, `DOC-POLICY-401`) where clause-level precision could matter for P1's four-condition reconciliation.
+
+May I proceed with Step 5.1?
+
+## Turn 26 · Sulu
+
+yes please
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Measure record sizes to ground the chunking design`
+
+</details>
+
+### Claude
+
+No record exceeds **424 characters**, median 235. That materially shapes the design — let me build both strategies and measure:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Implement and run step 5.1 chunking comparison`
+
+</details>
+
+### Claude
+
+The comparison came out even, but the F-2 detail exposed something worth chasing: under B, the archived policy stayed a **single** chunk because my merge rule folded its short disclaimer back in. Let me test what a *finer* split would do — this bears directly on our worst failure:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Test whether fine chunking separates the stale figure from its warning`
+
+</details>
+
+### Claude
+
+Important correction to my own hypothesis: the block containing EUR 2,500 **also says "superseded" and "former policy"**, so fine chunking would not strip the staleness marker here. My danger test only looked for "not use" and overstated it. Let me get the actual comparison numbers before writing this up:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Extract the comparison numbers from the notebook`
+
+</details>
+
+### Claude
+
+Decisive: **A wins on evidence, not just simplicity** — recall 1.000 vs 0.933, precision 0.367 vs 0.333. B *lost* a source on EVAL-002. Let me find out which and why:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Diagnose which source B lost on EVAL-002`
+
+</details>
+
+### Claude
+
+Precise mechanism found. Writing it up with the correction, plus a second finding I noticed in the ranking:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Add mechanism cells, correct caption, re-execute`
+- `Bash: Record ledger, tick board, commit step 5.1`
+
+</details>
+
+### Claude
+
+Two shell errors: nested quotes broke the commit message, and my issue-body match string was wrong. Checking the actual text:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Find actual 5.1 checkbox text and git state`
+- `Bash: Tick board and commit with heredoc`
+
+</details>
+
+### Claude
+
+## ✅ Step 5.1 complete — whole-record chunking, chosen on evidence
+
+Commit `6b56178`. Figure: `deliverables/figures/5_1_chunking_comparison.png`.
+
+| Strategy | Units | Mean recall | Mean precision |
+|---|---|---|---|
+| **A · whole-record** | **15** | **1.000** | **0.367** |
+| B · source-aware | 22 | 0.933 | 0.333 |
+
+**The simpler option is also the better-scoring one** — so `04`'s "keep the simplest strategy the evidence supports" isn't a compromise here.
+
+**Source-aware chunking actively lost a source** — it dropped `GH-142` out of the top 6 on EVAL-002. The mechanism generalises and is worth knowing: **splitting distributes a query's terms across units**, so no single chunk matches as many terms as the whole record did. `GH-142` scored 0.375 whole; split into a metadata header and a narrative body, neither half held its rank. Chunking pays off when a record is long enough that irrelevant content **dilutes** signal. At a 235-character median there's no dilution to remove — only signal to fragment.
+
+**One methodological trap I had to design around:** the baseline scores overlap as a *fraction of query tokens*, which structurally favours larger units. Comparing raw units would have let unit size decide the winner. So the comparison aggregates chunk scores to their parent source — the level citations actually resolve to. Otherwise this step would have measured the scoring function's bias, not the strategies.
+
+**No chunking strategy fixes F-2.** The archived policy scores 0.571 whether whole or finely split. That confirms from a second, independent direction that status-aware reasoning must live in the **agent** — Phase 6's job, not retrieval's.
+
+**A hypothesis of mine was wrong, and I've recorded it as wrong.** I predicted fine chunking would be *dangerous* by separating the EUR 2,500 figure from the sentence retracting it. The data disagrees: the block containing the figure also says *"superseded on 1 July 2026"* and *"former policy"*, so it carries its own staleness marker. The general risk is real; this corpus happens to be resilient to it. Claiming otherwise would have overstated the evidence.
+
+## And a new finding that constrains step 5.3
+
+**The baseline breaks score ties by `occurred_at` descending.** So whenever scores tie, the ranking silently becomes ***"most recent wins"*** — the *"latest source is authoritative"* fallacy the threat model explicitly rejects (T-03), encoded **in the retrieval function itself** rather than in a prompt.
+
+Eight of fifteen records tie at 0.375 on EVAL-002, so on a small corpus with short queries this decides real rankings. **Step 5.3's hybrid scoring must not inherit that tie-break.** Logged as a deck highlight.
+
+*(Two shell slips this turn: nested double quotes broke a commit message, and I guessed the checkbox wording instead of reading it. Both retried correctly — no damage.)*
+
+---
+
+## → Next step: 5.2 — Chroma + local Hugging Face embeddings
+
+**What we're about to do:** build the semantic index — Chroma with local HF embeddings, whole-record units, **two namespaces** (`company_knowledge`, `project_board`) per D-004 — and expose it behind the frozen `Retriever` Protocol as `SemanticRetriever`.
+
+**Why this is the step where the security property is won or lost:** `D-002` requires permissions applied as a **metadata pre-filter on the vector query**, not a post-query filter. Get it wrong and restricted content reaches the model before being removed — the leak still happens, just hidden. I'll re-run the step 3.2 assertion (36 adversarial retrievals, 0 violations) against the semantic retriever as the regression guard.
+
+**Two things to expect, so neither is a surprise:**
+- **First run downloads ~90 MB** (`sentence-transformers` model). Did you get a chance to pre-download? If not it's a one-time wait, and I'll cache it via `@st.cache_resource` for Phase 7 per D-001.
+- I'll wrap it so the model loads **once per process**, because uncached this is the single biggest perceived-performance factor in the product.
+
+May I proceed with 5.2?
+
+## Turn 27 · Sulu
+
+let's proceed
+
+### Claude
+
+Failed to authenticate: OAuth session expired and could not be refreshed
+
+## Turn 28 · Sulu
+
+let's proceed
+
+### Claude
+
+Proceeding with 5.2. Writing the index layer first — the permission pre-filter is the part that must be structurally right:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Write the Chroma index layer`
+
+</details>
+
+### Claude
+
+Now the retriever behind the frozen Protocol:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Write semantic retriever and verify imports`
+
+</details>
+
+### Claude
+
+Now building the index for real — this triggers the model download:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Build the semantic index and test retrieval`
+
+</details>
+
+### Claude
+
+Working. Note **cold start 39.0s vs warm retrieval 22.7ms** — that validates excluding cold start from the latency budget. Now the critical test: does the pre-filter hold?
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Run security regression and F-12 test on semantic retriever`
+
+</details>
+
+### Claude
+
+All security properties hold. But the F-12 test exposed a **second** problem: the fallback batch *upserted* 3 local records into `project_board`, taking it 11 → 14. Local Atlas issues don't belong in the board namespace — they already live in `company_knowledge`. Tightening the guard:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Add and verify the foreign-fallback guard`
+
+</details>
+
+### Claude
+
+Both guards hold. Recording 5.2 in the notebook with the evidence:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Add step 5.2 cells and execute the notebook`
+
+</details>
+
+### Claude
+
+All green. One correction needed — the notebook recorded **7.3 s** cold start, not 39 s: the 39 s included the one-time model *download*. That changes the claim materially, so let me state both accurately:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Correct finding, record ledger, commit step 5.2`
+- `Bash: Tick 5.2 and post findings`
+
+</details>
+
+### Claude
+
+## ✅ Step 5.2 complete — semantic index live, security property holds
+
+Commit `a3bf97a`. New: `src/company_assistant/rag/index.py` + `semantic.py`. `SemanticRetriever` satisfies the frozen H2 Protocol, so **Karthik's tools need no changes** at H3.
+
+**The permission filter is structural.** Applied as a Chroma `where` clause *inside* the vector query. One implementation detail turned out to be load-bearing: `allowed_roles` is stored as **one boolean per role**, because Chroma metadata holds only scalars — a set can't be used in a `where` clause at all. That flattening is what makes a genuine pre-filter possible rather than a post-filter dressed up.
+
+| Check | Result |
+|---|---|
+| Step 3.2 regression, re-run on semantic | **36 retrievals, 0 violations** |
+| `DOC-HR-001` admitted | People Ops **only** |
+| F-13 contamination | **Structurally impossible** — separate collections |
+| Sync idempotence | 15 upserted, 0 deleted, 15 unchanged |
+
+## F-12 was two hazards — the second appeared while I was fixing the first
+
+Known: disjoint live/fallback id spaces would delete all 11 live chunks on a transient failure.
+
+**Found under test:** the fallback batch would *also* **upsert** the local export into `project_board` — duplicating records that belong to `company_knowledge`, and leaving board questions answerable with unrelated Atlas issues. My first fix only blocked deletions, so it would have passed while still corrupting the namespace.
+
+Rule strengthened: **a degraded batch whose id space is disjoint from a namespace is a *different corpus*, not a stale copy of it** — the whole sync is refused. Verified: 11 live records untouched, 0 upserted, 0 deleted, degradation visible in `IndexStatus.degraded`.
+
+## Three latencies, and I'd initially have misreported them
+
+| Phase | Time | In budget? |
+|---|---|---|
+| First-ever run (~90 MB download) | 39.0 s | No — one-time |
+| Process cold start, model cached | **7.3 s** | No — per-process |
+| **Warm retrieval** | **23 ms** | **Yes** |
+
+I first wrote "cold start is 39 s" — that was the *download* run. The honest per-process figure is 7.3 s. Corrected in the notebook, because it changes the claim: 7.3 s per Streamlit rerun would make the product feel broken while the retriever is ~300× faster. **`@st.cache_resource` is load-bearing, not tidiness.**
+
+## And a concrete reason for 5.3
+
+Semantic found all three P1 sources but ranked them oddly — **`GH-142`, the actual blocker, came last at 0.310**, below `EMAIL-ACME-301` (0.542). Those records are *about* Atlas dates in general terms and win on topical similarity; `GH-142`'s value is one specific technical fact. That's exactly the gap hybrid closes — a measured motivation rather than an architectural assumption.
+
+---
+
+## → Next step: 5.3 — Hybrid scoring
+
+**What we're about to do:** combine lexical and semantic signals into a documented hybrid mode behind the same Protocol, and show the score contribution per result.
+
+**Why:** `04` requires a *documented* scoring strategy, and we now have two measured, complementary failures to fix — lexical misses paraphrase (P3 relies on it), semantic under-ranks specific facts (`GH-142` at 0.310).
+
+**Two constraints carried in, both from our own findings:**
+1. **The tie-break must not be recency.** Step 5.1 found the baseline breaks ties by `occurred_at` descending, silently encoding the *"latest is authoritative"* fallacy the threat model rejects (T-03). I'll break ties deterministically on something neutral instead.
+2. **Hybrid must not fix F-2 by accident and let us stop thinking about it.** If the current refund policy starts winning for the wrong reason, that's luck, not a control — status-aware reasoning still belongs in Phase 6.
+
+My proposed default is a **weighted sum of min-max-normalised lexical and semantic scores**, starting at 0.5/0.5 and reported per-result so the contribution is inspectable — with the weight chosen from the 5.5 comparison, not asserted now.
+
+May I proceed with 5.3?
+
+## Turn 29 · Sulu
+
+ok
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Write the hybrid retriever`
+
+</details>
+
+### Claude
+
+Now testing it — including whether hybrid actually fixes the `GH-142` under-ranking that motivated it:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Test hybrid scoring and check GH-142 rescue`
+
+</details>
+
+### Claude
+
+Two important **negative** results there. Hybrid did **not** rescue `GH-142` — it went from rank 4 (lexical) to rank 6. And F-2 got *worse*: the archived policy's lead widened from 0.14 (lexical) to 0.20 (hybrid). Let me sweep the weight before committing to a default:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Sweep the hybrid weight across all priority questions`
+
+</details>
+
+### Claude
+
+Honest and important: **recall is 1.000 for every mode and every weight.** Retrieval mode is not the lever on this corpus. And the aggregate metric disagrees with the product-critical case. Let me write this up with the figures:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Add step 5.3 cells with weight sweep and execute`
+- `Bash: Record ledger, tick board, commit step 5.3`
+
+</details>
+
+### Claude
+
+## ✅ Step 5.3 complete — and two results contradict what I expected
+
+Commit `ee160ae`. Figures: `5_3_score_contribution.png`, `5_3_weight_sweep.png`.
+
+### 1. Recall is saturated — retrieval mode is not the lever
+
+**`recall@6 = 1.000` for lexical, for semantic, and for every hybrid weight from 0.0 to 1.0.** Every expected source is retrieved in the top 6 by every configuration.
+
+This is F-8 confirmed with hard numbers, and it **reframes the Phase 8 story**: retrieval was never the bottleneck. Abstention and authority are. That's a more honest and more interesting evaluation narrative than "hybrid won."
+
+### 2. Hybrid did *not* rescue `GH-142` — the opposite of why I built it
+
+Semantic ranked the actual release blocker **last** (0.310). I expected blending to lift it. At `w = 0.5` it **stayed 6th — worse than pure lexical's 4th.**
+
+> **Blending averages a weak signal *in*. It does not route around one.**
+
+`GH-142` recovers rank 4 only at `w ≥ 0.6`, where lexical dominates. Worth stating plainly since it inverts the intuition that motivated the step.
+
+### 3. Semantic and hybrid make F-2 *worse*
+
+| Mode | Archived | Current | Gap |
+|---|---|---|---|
+| lexical | 0.57 | 0.43 | 0.14 |
+| **hybrid** | **0.88** | **0.68** | **0.20** |
+
+The two policies are semantically near-identical, so embeddings can't separate them either, and normalisation amplifies the lexical lead. **Three independent measurements now agree: no retrieval configuration fixes F-2.** It belongs to the agent — Phase 6 owns it.
+
+### On the weight: I've recorded it as provisional rather than claiming a win
+
+The aggregate metric prefers `w = 0.3–0.4`; `GH-142` prefers `w ≥ 0.6`. But mean rank spans only **2.27 → 2.53** and is **non-monotonic** (0.4 → 2.27, 0.5 → 2.47, 0.6 → 2.33) — a signature of noise at five questions.
+
+Choosing 0.6 because it flatters the one case I'd highlighted would be cherry-picking. So: **provisional `w = 0.6`**, with the rationale stated as a *product judgement* — a lexical majority preserves the exact wording and identifier matching F-2 shows we depend on, and it ranks the blocker 4th rather than 6th for a bounded agent. **To be confirmed on the full 12-case set in 5.5 and 8.2.**
+
+One thing changed on principle rather than performance: **the tie-break**. The baseline broke ties by recency, silently encoding the "latest is authoritative" fallacy (T-03). Hybrid breaks ties lexicographically — arbitrary but *neutral*. Ties should be broken by nothing meaningful, not by a hidden editorial claim.
+
+---
+
+## → Next step: 5.4 — Index lifecycle
+
+**What we're about to do:** complete the lifecycle machinery and prove EVAL-011 end to end — add a temporary record, sync, verify it's retrievable, delete the source, sync again, verify it's gone. Plus the full-rebuild path and a visible last-indexed status.
+
+**Why:** it's the last Phase 5 step before the mode comparison, and EVAL-011 is a supplied case we must pass. Much of the machinery already exists and is tested — the fingerprint (2.2), the manifest diff, both F-12 guards, `IndexStatus`. What's missing is the **add → verify → delete → verify** proof and the rebuild path.
+
+**A caveat I should flag:** the F-12 guards I built will make EVAL-011 slightly awkward to demonstrate, because a "deleted source" batch legitimately *should* drive deletions when the batch is live. I'll show both cases explicitly — a live batch that deletes correctly, and a degraded batch that's refused — so the distinction is visible rather than looking like inconsistency.
+
+May I proceed with 5.4?
+
+## Turn 30 · Sulu
+
+ok
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Add and run step 5.4 lifecycle tests`
+
+</details>
+
+### Claude
+
+The 5.4 cells got inserted *before* the 5.3 cells, so the import hadn't run. Checking the actual order:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Inspect notebook cell ordering around Phase 5`
+
+</details>
+
+### Claude
+
+5.3's cells are **missing from the working tree** — 5.1, 5.2, then 5.4. Let me find out whether they were committed:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Check whether 5.3 cells were ever committed`
+
+</details>
+
+### Claude
+
+HEAD has 5.3 but the working tree lost it — my 5.4 insert wrote a notebook missing those cells. Recovering deterministically: extract the 5.4 cells I just wrote, restore the committed notebook, then re-insert in the right order:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Restore 5.3 and re-insert 5.4 in correct order`
+
+</details>
+
+### Claude
+
+Order is now correct: 5.1 → 5.2 → 5.3 → 5.4. Re-executing:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Execute the reordered notebook`
+
+</details>
+
+### Claude
+
+All seven lifecycle steps pass. **Step 4 is the one that matters:** content byte-identical, fingerprint changed by metadata alone, Engineering lost access and People Ops gained it — on the very next sync.
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Record ledger, commit step 5.4, verify notebook integrity`
+
+</details>
+
+### Claude
+
+## ✅ Step 5.4 complete — lifecycle proven, including the case no supplied test covers
+
+Commit `ab7827a`. Notebook integrity verified: all 14 sections in order, 80 cells, 15 figures.
+
+| Step | Units | Leo admits | Priya admits | Result |
+|---|---|---|---|---|
+| 1. baseline | 15 | ✗ | ✗ | — |
+| 2. **ADD** | 16 | ✓ | ✗ | retrievable |
+| 3. **CHANGE content** | 16 | ✓ | ✗ | replaced, not duplicated |
+| 4. **RE-PERMISSION** | 16 | **✗** | **✓** | access flipped |
+| 5. **DELETE** | 15 | ✗ | ✗ | gone, no residue |
+| 6. degraded batch | 15 | — | — | refused |
+| 7. rebuild | 0 → 15 | — | — | restored |
+
+### Step 4 is the result worth having
+
+`allowed_roles` tightened from `engineering` to `people_operations` with content **byte-identical**:
+
+```
+fingerprint before: GH-TEMP-901::f5f62cc3333e::00
+fingerprint after : GH-TEMP-901::6da2a3d318a0::00   ← changed by metadata alone
+```
+
+**Engineering lost access on the very next sync; People Operations gained it.** That closes **F-5** and **T-08** with evidence rather than argument. A content-only hash would have fired no upsert, and the indexed chunk would have kept serving Engineering under a policy that no longer existed. No supplied evaluation case tests this — we only knew to test it because step 2.2 found the gap.
+
+**EVAL-011 passes end to end**, and a content change **replaces** rather than duplicates — exactly one chunk per source. Duplication would be worse than staleness: the agent could cite two contradictory versions of the same `source_id` and *both* citations would resolve.
+
+I demonstrated **deletion and degradation side by side deliberately** — a live batch omitting a record *should* delete it, a degraded batch must not. Apart, those look like inconsistent behaviour; together they read as one coherent rule.
+
+### One thing I broke and fixed
+
+My 5.4 insert wrote a notebook that had silently **dropped the 5.3 cells** from the working tree (they were safely committed). I caught it when execution failed on a missing import, verified against `git show HEAD`, extracted the 5.4 block, restored the committed notebook, and re-inserted 5.4 *after* 5.3. Nothing lost — and it's why the notebook now gets an explicit section-order check.
+
+---
+
+## → Next step: 5.5 — The three-mode comparison, closing Phase 5
+
+**What we're about to do:** run lexical, semantic, and hybrid over the same question set on the same index and record, per mode: expected evidence found, forbidden evidence absent, and retrieval latency. Then **confirm or revise the provisional `w = 0.6`** and select the default.
+
+**Why:** `04` requires the default to be chosen from measured results, not architectural preference. This is also the row of `EVALUATION_REPORT.md`'s retrieval-comparison table that's still empty.
+
+**I should set expectations honestly, because 5.3 already told us the answer:** recall is **saturated at 1.000** for every mode. So this step cannot produce "hybrid wins on recall" — and if I presented it that way it would be dishonest. What it *can* produce is a defensible default chosen on secondary criteria (rank of expected evidence, latency, and behaviour on the F-2 conflict case), plus the more valuable conclusion: **retrieval was never this product's bottleneck.** That reframes Phase 8 around abstention and authority, which is where the real failures are.
+
+I'll widen the question set beyond the five used in 5.3 to include the retrieval-relevant supplied cases, so the denominator is larger before we fix a default.
+
+May I proceed with 5.5?
+
+## Turn 31 · Sulu
+
+ok
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Add and run step 5.5 three-mode comparison`
+
+</details>
+
+### Claude
+
+The wider set **changed the conclusion** — semantic drops to 0.95 recall and `w=0.6` is now the argmin, not a judgement call. Let me pin down exactly what semantic missed:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Diagnose semantic's EVAL-012 miss`
+
+</details>
+
+### Claude
+
+Same record, same cause: `GH-142` sits at **7th (0.261)** under semantic — just below the cutoff. Its prose is about payment retries; its *Atlas* identity lives in labels, which lexical catches and embeddings don't. Writing up, including a correction to my 5.3 claim:
+
+<details><summary>Tool calls (3)</summary>
+
+- `Bash: Add 5.5 findings and correct the 5.3 claim in the ledger`
+- `Bash: Fill evaluation report, record D-006, close Phase 5`
+- `Bash: Commit, comment, close Phase 5`
+
+</details>
+
+### Claude
+
+# ✅ Phase 5 complete — 6 of 11 phases closed
+
+| Mode | recall@6 | precision@6 | mean expected rank | forbidden | median latency |
+|---|---|---|---|---|---|
+| **hybrid (w=0.6)** | **1.00** | 0.350 | **2.000** | **0** | **43 ms** |
+| lexical | 1.00 | 0.350 | 2.150 | 0 | 52 ms |
+| semantic | **0.95** | 0.333 | 2.683 | 0 | 47 ms |
+
+**Default selected: hybrid, `lexical_weight = 0.6`** — recorded as `D-006`, chosen as the **argmin** of mean expected rank at full recall.
+
+## I corrected one of my own conclusions
+
+Step 5.3 concluded from **five** questions that *"recall is saturated, retrieval mode is not the lever"* — and I put it in the deck as a highlight. **On ten questions it's false:** semantic drops to 0.95 and misses half of EVAL-012.
+
+The saturation was an artifact of the small set. That's precisely why I widened the set *before* fixing a default, and the correction is now recorded in `EVALUATION_REPORT.md` and struck through in the ledger rather than quietly deleted — the reversal is itself evidence that five questions was too small a denominator.
+
+The weaker claim survives and still matters: recall differences are small, no mode fails badly, so retrieval isn't where this product's real failures live.
+
+## The finding that justifies the choice — and it generalises
+
+> **Semantic retrieval under-ranks records whose *identifying* vocabulary sits in metadata rather than prose.**
+
+`GH-142`'s body reads *"duplicate events when a payment retry arrives during settlement"* — no "Atlas", no "open". Its Atlas identity lives in its **labels**. Lexical matches those; embeddings don't. Semantic ranks it **7th**, one place below the cutoff. That's a property of enterprise work items, not a quirk of this fixture — and it's why a lexical majority is correct here rather than merely preferred.
+
+`w=0.6` is now measured rather than judged: the sweep shows a real threshold (recall 0.95 for `w ≤ 0.3`, 1.00 for `w ≥ 0.4`), and the rank spread widened from 0.06 positions on five questions to **0.68** on ten.
+
+**Latency was deliberately not used as a tiebreaker** — run-to-run spread (38–85 ms) exceeds the between-mode difference, so treating it as signal would be false precision.
+
+## What retrieval could not fix — Phase 6 owns it
+
+**F-2 survives every mode, and hybrid makes it worse** (gap 0.14 → 0.20). Three independent measurements now agree: **status-aware reasoning belongs in the agent.** Every chunk carries `status` and `effective_at` (step 2.2) precisely so Karthik can use them.
+
+---
+
+## Handover to Karthik — Phase 6 is unblocked
+
+Per **D-005** (sequential), this is the handover point. Everything he needs is ready:
+
+| | |
+|---|---|
+| Retriever | `HybridRetriever`, `w=0.6` wired as default, behind the frozen H2 Protocol |
+| Tools need a `mode` argument? | **No** — product default *is* the contract default |
+| Three-mode reproducibility | Same retriever serves all three, so Phase 8 rebuilds nothing |
+| Permission boundary | Survived **four** regression checks; 0 forbidden across 30 pairs |
+| The hard problem | F-2 — documented, measured three ways, unfixable by retrieval |
+
+I've posted the full handover on issue #6 and closed it. Issue #7 (Phase 6) still carries my earlier "hold" notice.
+
+**Two things before Karthik starts:** he'll need a **`GROQ_API_KEY`** in `.env` (first time it's required), and step 6.3 should begin with the **model bake-off** from `D-001` — `llama-3.3-70b-versatile` vs `openai/gpt-oss-20b` — before fixing a default, since tool-calling reliability is the main risk in his phase.
+
+Want me to post the Phase 6 "start here" brief on issue #7 and lift the hold, or would you rather review Phase 5's output first?
+
+## Turn 32 · Sulu
+
+update the handover, commit, push and merge
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Inspect current handover structure`
+- `Bash: Update handover header, status, findings, decisions`
+
+</details>
+
+### Claude
+
+Now replacing §8 (the completed Phase 4 brief) with the Phase 6 brief, and refreshing the closing sections:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Replace section 8 with Phase 6 brief, refresh closing sections`
+- `Bash: Refresh transcript, commit and push handover update`
 
 </details>
 
