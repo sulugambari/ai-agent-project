@@ -62,7 +62,14 @@ from company_assistant.rag.contract import (
 from company_assistant.rag.index import COMPANY_KNOWLEDGE, Namespace, VectorIndex
 from company_assistant.retrieval import _tokens
 
-DEFAULT_LEXICAL_WEIGHT = 0.5
+#: The weight D-006 selected from the ten-question comparison in step 5.5, where it
+#: was the argmin of mean expected rank (2.000) at full recall. It was 0.5 during
+#: step 5.3's exploratory sweep and was not updated when the decision landed, so
+#: `HybridRetriever(index)` silently ran a configuration the team never chose
+#: (F-15.1, found by Phase 6 rather than by Phase 5 - the contract was never
+#: exercised by a consumer that needed the value to be right). Keep this equal to
+#: the decision, and assert it rather than trusting the comment.
+DEFAULT_LEXICAL_WEIGHT = 0.6
 
 
 @dataclass(frozen=True, slots=True)

@@ -33,12 +33,22 @@ from company_assistant.tools.comparison import compare_sources
 from company_assistant.tools.knowledge import search_company_knowledge
 from company_assistant.tools.support import get_support_case
 from company_assistant.tools.work_items import search_work_items
+from company_assistant.rag.hybrid import (
+    DEFAULT_LEXICAL_WEIGHT as rag_default_weight,
+)
 
 #: D-006 selected hybrid with a lexical weight of 0.6 as the product default,
 #: after re-measuring ten questions; `rag.hybrid.DEFAULT_LEXICAL_WEIGHT` is still
 #: 0.5. Passed explicitly so the tools run the configuration the team actually
 #: chose rather than the library default that happens to be in the code.
+#: Kept as a named constant so the decided value is greppable from the tool layer,
+#: but asserted equal to the retrieval default so the two cannot drift apart again.
+#: F-15.1 was exactly that drift, and a comment would not have caught it.
 DECIDED_LEXICAL_WEIGHT = 0.6
+assert DECIDED_LEXICAL_WEIGHT == rag_default_weight, (
+    f"tool layer expects lexical weight {DECIDED_LEXICAL_WEIGHT} but "
+    f"rag.hybrid defaults to {rag_default_weight}; D-006 selected 0.6"
+)
 
 
 class KnowledgeSearchArgs(BaseModel):
