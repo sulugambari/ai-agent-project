@@ -40,16 +40,56 @@ artifact is not a product failure.
 
 ## Retrieval Comparison
 
-| Variant | Expected sources found | Forbidden sources found | Median retrieval latency | Notes |
-| --- | --- | --- | --- | --- |
-| **Lexical baseline** | Partial — retrieved all 3 EVAL-002 sources (`GH-142`, `GH-149`, `DOC-ATLAS-403`) for the Atlas blocker question; **ranks the archived refund policy above the current one** | **0** across 36 adversarial retrievals (4 roles × 9 queries) | Sub-millisecond; no model or network call | Not a strawman on recall. Fails on authority and abstention |
-| Semantic with agent | *Phase 5.5 / 8.2* | | | |
-| Hybrid with agent | *Phase 5.5 / 8.2* | | | |
+Ten questions: the seven supplied cases whose expected evidence is retrievable
+(EVAL-001, 002, 003, 006, 009, 010, 012) plus the three priority questions.
+Cases targeting a database lookup (EVAL-004, 008), an abstention with no
+expected source (EVAL-007), or the index lifecycle (EVAL-011) are excluded from
+*retrieval* scoring and measured in their own steps — counting them here would
+measure the wrong layer. Top 6, same index, same permitted set for every mode.
 
-**Selected default and reason:** *pending step 5.5.* To be chosen from measured
-results, not architectural preference. Note the caution from step 1.1: at 15
-records recall is easy, so a large claimed recall win should be treated as
-suspect until inspected case by case.
+| Variant | recall@6 | precision@6 | Mean expected rank | Forbidden sources found | Median retrieval latency | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| Lexical baseline | 1.00 | 0.350 | 2.150 | **0** | 52 ms | Full recall. Catches `GH-142` through its labels |
+| Semantic with agent | **0.95** | 0.333 | 2.683 | **0** | 47 ms | **Misses half of EVAL-012** — ranks `GH-142` 7th, one below the cutoff |
+| **Hybrid with agent (w = 0.6)** | **1.00** | 0.350 | **2.000** | **0** | 43 ms | Best rank at full recall. **Selected** |
+
+Latency is reported separately from end-to-end latency because the lexical mode
+invokes no model and the two are not comparable. Run-to-run spread was
+38–85 ms across the weight sweep, which **exceeds** the between-mode
+difference — so latency cannot decide the default and was not used to.
+
+**Selected default and reason:** **hybrid, `lexical_weight = 0.6`** (D-006).
+Chosen from measured results: it is the **argmin** of mean expected rank on ten
+questions (2.000) while achieving full recall, with no permission leakage. The
+weight sweep shows a genuine threshold rather than noise — recall is 0.95 for
+`w ≤ 0.3` and 1.00 for `w ≥ 0.4`.
+
+**A correction, recorded rather than removed.** Step 5.3 concluded from five
+questions that "recall is saturated, so retrieval mode is not the lever". On ten
+questions that is **false** — semantic drops to 0.95. The saturation was an
+artifact of the smaller set, which is why the set was widened *before* fixing a
+default. The weaker surviving claim still holds and still matters: recall
+differences between modes are small and no mode fails badly, so retrieval is
+not where this product's real failures live.
+
+**Why a lexical majority is right here, generalised.** Semantic retrieval
+under-ranks records whose *identifying* vocabulary sits in **metadata rather
+than prose**. `GH-142`'s body describes *"duplicate events when a payment retry
+arrives during settlement"* — it contains neither "Atlas" nor "open", and its
+Atlas identity lives in its labels (`atlas, release-blocker, billing`). Lexical
+scoring matches those; embedding similarity does not. That is a property of
+enterprise work items in general, not a quirk of this fixture.
+
+**What no retrieval configuration fixed.** The F-2 conflict — the archived
+EUR 2,500 refund policy outranking the current EUR 1,000 one — persists in
+every mode, and **hybrid makes it worse** (gap 0.14 lexical → 0.20 hybrid),
+because the two documents are semantically near-identical and normalisation
+amplifies the lexical lead. Three independent measurements agree: this belongs
+to the agent, not to retrieval.
+
+**Figures:** `5_5_mode_comparison.png`, `5_3_weight_sweep.png`,
+`5_3_score_contribution.png`, `5_1_chunking_comparison.png`,
+`5_4_lifecycle_timeline.png`.
 
 ## Baseline Evidence (Phase 3)
 

@@ -1,0 +1,1 @@
+Ten questions - seven supplied cases plus the three priority questions - across lexical, semantic and hybrid. recall@6 is 1.000 for all three, so retrieval mode is not this product's bottleneck. The default is chosen on mean expected rank and latency, and zero forbidden sources appeared in results or candidate sets in any mode.

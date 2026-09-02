@@ -253,6 +253,52 @@ Record meaningful product and architecture decisions, not every small edit.
     `.ipynb` merge conflicts whenever work does overlap at a boundary.
 - **Status:** Accepted
 
+### D-006 · Default retrieval mode is hybrid with a lexical weight of 0.6
+
+- **Phase:** 5 (step 5.5)
+- **Context:** `04` requires the default retrieval mode to be selected from measured
+  results rather than architectural preference. Step 5.3 measured five questions,
+  found the differences to be within noise, and set `w = 0.6` **provisionally** on a
+  product rationale while explicitly flagging the risk of cherry-picking. Step 5.5
+  re-measured on ten questions — the seven supplied cases whose expected evidence is
+  retrievable, plus the three priority questions.
+- **Options considered:**
+  1. **Hybrid, `lexical_weight = 0.6`** — *selected*. recall@6 1.00, precision 0.350,
+     mean expected rank **2.000** (the argmin of the sweep), 0 forbidden sources,
+     43 ms median retrieval latency.
+  2. **Lexical only** — *rejected.* Equal recall and precision, but a worse mean rank
+     (2.150). Retained as the required comparison baseline, per `AGENTS.md`.
+  3. **Semantic only** — *rejected.* recall drops to **0.95**, missing half of
+     EVAL-012's expected evidence, and mean rank is clearly worse (2.683).
+  4. **Semantic-leaning hybrid (`w ≤ 0.3`)** — *rejected.* recall falls to 0.95 at
+     `w ≤ 0.3`; the sweep shows a genuine threshold at `w = 0.4`, not noise.
+- **Coding-agent contribution:** Claude Code widened the question set from five to ten
+  before fixing the default, which **reversed** its own step 5.3 conclusion that recall
+  was saturated and mode did not matter. It also identified the generalisable reason a
+  lexical majority is correct here: semantic retrieval under-ranks records whose
+  identifying vocabulary sits in metadata rather than prose — `GH-142`'s body mentions
+  neither "Atlas" nor "open", and its Atlas identity lives in its labels.
+- **Evidence reviewed:** the ten-question three-mode comparison; the eleven-point weight
+  sweep; the EVAL-012 ranking breakdown showing `GH-142` at 7th under semantic; latency
+  medians and run-to-run spread; the forbidden-source assertion across all 30
+  mode-question pairs.
+- **Decision and owner:** hybrid, `lexical_weight = 0.6`. Owner: Sulu.
+- **Consequences or follow-up:**
+  - The contract's default (`mode="hybrid"`) now matches the product default, so Phase 6
+    tools need no mode argument.
+  - Lexical and semantic remain fully available on the same retriever, so Phase 8 can
+    reproduce the three-way comparison without rebuilding anything.
+  - **Latency was deliberately not used as a tiebreaker.** Run-to-run spread (38–85 ms)
+    exceeds the between-mode difference, so treating it as signal would be false
+    precision.
+  - **This decision does not address F-2.** The archived-versus-current refund conflict
+    persists in every mode and hybrid makes it *worse* (gap 0.14 → 0.20). Status-aware
+    reasoning remains Phase 6's responsibility.
+  - Step 5.3's "recall is saturated" claim is corrected in `EVALUATION_REPORT.md` and in
+    the slide-deck ledger rather than removed, since the reversal is itself evidence that
+    a five-question denominator was too small.
+- **Status:** Accepted
+
 ## Decision Template
 
 ### Decision: Short descriptive title
