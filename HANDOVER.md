@@ -529,7 +529,7 @@ state from a case that ran before it.
 | 5 tools | normal / denied / empty / failure, all distinct | 24 direct calls, 24 pass — `6_2_tool_test_matrix` |
 | Relevance | absolute coverage separates answerable from unanswerable | `6_2_relevance_threshold` |
 | Agent | bounded to 6 tool calls, candidate set carried out per turn | notebook 6.3 assertions |
-| Approval gate | approved / edited / rejected / failed all recorded; re-approval never double-executes | 22 transitions, 22 pass |
+| Approval gate | approved / edited / rejected / failed all recorded; re-approval never double-executes | 21 transitions, 21 pass |
 | Service | baseline preserved, permissions hold, feedback stores 5 fields only | 18 checks, 18 pass |
 | Interfaces | app renders and answers with no exception or leak; 5 endpoints respond | Streamlit `AppTest`, FastAPI `TestClient` |
 
@@ -705,5 +705,11 @@ varies run to run. That is exactly why Phase 8 must repeat every case, and why t
 blockers have to hold on every run rather than on average.
 
 The executable assertions in both notebooks exist so a regression fails loudly rather than
-quietly. There are **58** across the two notebooks, plus 24 tool checks, 22 approval
+quietly. There are **58** across the two notebooks, plus 24 tool checks, 21 approval
 transitions and 18 service checks. Please keep them passing.
+
+**One caveat on reproducing them today:** the Groq quota is exhausted, so cell 6.3 reports
+a `RateLimitError` and skips its assertions rather than crashing (F-21). Everything
+deterministic — 6.1, 6.2, 6.4 — still runs and asserts. The notebook executes end to end
+with 31 cells and 0 errors in that state, which is the honest condition to hand over in
+rather than a green run that needed a working quota to produce.

@@ -1,0 +1,1 @@
+The approval gate records approved, edited, rejected and failed outcomes; re-approval never double-executes and no tool can execute at all.
