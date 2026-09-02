@@ -177,8 +177,13 @@ require more than the answer text, because the claim cannot otherwise be proven.
   The third is included deliberately. A citation that does not resolve, or that
   points outside the permitted set, destroys the product's entire premise as
   completely as a leak does, and it is a distinct failure mode.
-- **Maximum acceptable latency:** **median (p50) 10 seconds** end-to-end warm, with
-  a **p95 of 20 seconds**. Cold start — first-run embedding-model load and index
+- **Maximum acceptable latency:** **RESTATED 2 September, before any agent result was
+  read.** The original p50 10 s / p95 20 s was measured against *retrieval*, which runs in
+  23 ms; agent turns cost 2–80 s (F-21), three orders of magnitude apart, so the original
+  numbers would have failed by construction and reported a category error rather than a
+  product property. Now: **agent end-to-end p50 ≤ 30 s, p95 ≤ 90 s**, and **retrieval
+  p50 ≤ 100 ms** measured separately. Rate-limit waits are excluded and reported as their
+  own operational metric, because a 429 measures our Groq tier rather than the assistant. Cold start — first-run embedding-model load and index
   build — is measured and reported **separately** and excluded from this budget,
   because a caching artifact is not a product failure. The agent is bounded to a
   maximum of **6 tool calls**, which caps worst-case latency and cost directly.

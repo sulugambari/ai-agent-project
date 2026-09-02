@@ -407,6 +407,50 @@ that counts a 429 as a behavioural failure measures the quota, not the model.
 Also: **the latency thresholds in `EVALUATION_REPORT.md` were set against retrieval and
 cannot be reused for agent turns.** They need restating before Phase 8 measures anything.
 
+### F-22 · `gpt-oss` is a reasoning model — a tight `max_tokens` returns EMPTY content
+Verified on the live key. `openai/gpt-oss-*` spends completion tokens on internal
+reasoning **before** emitting any visible content:
+
+| `max_tokens` | `finish_reason` | content | completion tokens |
+| --- | --- | --- | --- |
+| 5 | `length` | **`''`** | 5 |
+| 64 | `stop` | `'ready'` | 32 |
+| 512 | `stop` | `'ready'` | 32 |
+
+A three-word answer costs **32 completion tokens**, and at a low cap the answer comes back
+**empty with `finish_reason="length"`**.
+
+**The product is safe:** `agent/runner.py` builds `ChatGroq(model=…, temperature=0)` with
+**no** `max_tokens`, so it uses the provider default. But this is a live trap for anything
+that reads model output. Same class as F-20: an *infrastructure* artifact that looks like a
+model-quality failure.
+
+**Phase 8 requirement:** the scorer must treat `finish_reason == "length"` with empty
+content as an **infrastructure failure to retry**, never as a behavioural failure to score.
+Scoring it would measure our token budget instead of the model. It also means F-21's quota
+maths is worse than a naive token count suggests.
+
+### F-23 · `llama-3.3-70b-versatile` is not available on this tier — D-001's bake-off is unexecutable as written
+The live key exposes **14 models**, and the one D-001 nominated is not among them. Actually
+available and relevant: `openai/gpt-oss-20b`, `openai/gpt-oss-120b`,
+`openai/gpt-oss-safeguard-20b`, `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `groq/compound`.
+
+So **D-007's bake-off is `gpt-oss-20b` vs `gpt-oss-120b`** — which is what Karthik had
+already begun — optionally with a `qwen` as a third arm. D-001's recommendation should be
+read as superseded by availability rather than ignored.
+
+**Noted but deliberately not adopted:** `meta-llama/llama-prompt-guard-2-*` are
+prompt-injection *classifiers* and are available. They are a legitimate **Phase 10
+defence-in-depth** candidate, and explicitly **not** a primary control —
+`THREAT_MODEL.md` T-01 rejects pattern-matching as the primary defence, and a learned
+classifier is a stronger version of the same behavioural category, not a structural one.
+
+### F-24 · F-20 confirmed live, and the fix holds
+One real agent turn on P1 returned prose containing `DOC‑ATLAS‑403` with **U+2011**, while
+the extracted citation list carried ASCII `DOC-ATLAS-403`.
+`agent.runner.normalize_for_id_matching` is doing real work on every turn, not guarding a
+hypothetical. Any Phase 8 scorer that parses ids out of prose must reuse it.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
