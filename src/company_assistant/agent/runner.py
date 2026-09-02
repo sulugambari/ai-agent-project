@@ -180,6 +180,20 @@ def _derive_status(records: list[TurnRecord], cited: list[str], text: str) -> An
         return "insufficient_evidence"
 
     retrieved_anything = any(record.source_ids for record in records)
+
+    # A turn whose purpose was to PREPARE AN ACTION is judged on whether the
+    # proposal exists, not on whether company evidence was retrieved. "Prepare an
+    # issue to track the Finance validation step" needs no citation to be a
+    # correct, complete turn, so grading it by retrieval labelled a successful
+    # proposal `insufficient_evidence` - which in the interface reads as though
+    # the assistant had failed.
+    prepared = [
+        record for record in records
+        if record.tool == "propose_action" and record.status == "ok" and record.raw.get("proposal")
+    ]
+    if prepared:
+        return "answered"
+
     if any(record.status == "denied" for record in records) and not retrieved_anything:
         return "forbidden"
     if any(record.status in {"error", "unparseable"} for record in records) and not retrieved_anything:
@@ -345,6 +359,30 @@ def ask(
     status = _derive_status(records, [c.source_id for c in citations], text)
 
     index_status = toolset.knowledge_retriever.index_status()
+
+    # --- the interface warning contract -----------------------------------
+    # These four prefixes are a deliberate contract between the agent and the
+    # interfaces: Phase 7 must show conflict and staleness warnings, and the
+    # facts that justify them are known here and nowhere else. Prefixing them
+    # means the interface filters on a stable token instead of re-deriving the
+    # conditions or pattern-matching prose it does not own.
+    warnings: list[str] = []
+    for record in records:
+        for hint in record.raw.get("conflicts") or []:
+            warnings.append(f"CONFLICT: {hint.get('detail', '')}")
+        if record.raw.get("relevance") in {"weak", "none"}:
+            warnings.append(
+                f"CAUTION: retrieved evidence only covers {record.raw.get('max_term_coverage')} "
+                "of the question's terms; the company may hold no answer to this."
+            )
+        if record.raw.get("degraded"):
+            warnings.append(
+                f"STALE: {record.tool} served a degraded fallback rather than live data "
+                f"({record.raw.get('detail', '')})."
+            )
+    if index_status.degraded:
+        warnings.append("STALE: at least one indexed source came from a fallback, not a live fetch.")
+
     trace = [
         f"Employee: {employee.display_name} ({employee.role})",
         f"Tool calls: {len(records)} of {MAX_TOOL_CALLS} permitted",
@@ -369,6 +407,7 @@ def ask(
         # Kept loud. A dropped citation is a near miss on a release blocker, not
         # a formatting detail.
         trace.append(f"DROPPED unretrieved source id(s) cited by the model: {', '.join(fabricated)}")
+    trace.extend(dict.fromkeys(warnings))  # de-duplicated, order preserved
     trace.append(f"Derived status: {status} (from tool outcomes, not from the answer text)")
     trace.append(f"Index: {index_status.describe()}")
 

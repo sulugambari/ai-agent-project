@@ -47,6 +47,10 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 DEFAULT_INDEX_DIR = Path("data/index")
 
+#: Freshness state written beside the Chroma store so a last-indexed
+#: disclosure survives a process restart rather than resetting to "never".
+INDEX_MANIFEST = "freshness_manifest.json"
+
 Namespace = Literal["company_knowledge", "project_board"]
 COMPANY_KNOWLEDGE: Namespace = "company_knowledge"
 PROJECT_BOARD: Namespace = "project_board"
@@ -176,8 +180,58 @@ class VectorIndex:
         self._embed = embedding_function or embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name=EMBEDDING_MODEL
         )
+        self._manifest_path = directory / INDEX_MANIFEST
         self._freshness: dict[str, SourceFreshness] = {}
         self._last_indexed: datetime | None = None
+        self._load_manifest()
+
+    # -- freshness manifest --------------------------------------------------
+    # Phase 7 (step 7.3) must disclose a last-indexed status, and the agent must
+    # never present fallback data as live (F-12, T-07). Both facts were held only
+    # in instance attributes, so any freshly started process - Streamlit,
+    # FastAPI, the agent - reported "indexed never" and defaulted every namespace
+    # to `local`, silently asserting "committed fixture" over data that was
+    # really live or a degraded substitute. That is a disclosure claim being
+    # wrong by construction, so the state is now written beside the store.
+
+    def _load_manifest(self) -> None:
+        """Restore last-indexed time and per-namespace freshness from disk."""
+        if not self._manifest_path.exists():
+            return
+        try:
+            payload = json.loads(self._manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            # A corrupt manifest must not claim freshness it cannot support, and
+            # must not stop the index loading either: unknown is the safe state.
+            return
+        indexed_at = payload.get("last_indexed_at")
+        self._last_indexed = datetime.fromisoformat(indexed_at) if indexed_at else None
+        for namespace, entry in (payload.get("sources") or {}).items():
+            self._freshness[namespace] = SourceFreshness(
+                source=namespace,
+                freshness=entry.get("freshness", "local"),
+                detail=entry.get("detail", ""),
+            )
+
+    def _save_manifest(self) -> None:
+        """Write the manifest next to the store. Never fatal: it is disclosure."""
+        payload = {
+            "last_indexed_at": self._last_indexed.isoformat() if self._last_indexed else None,
+            "sources": {
+                namespace: {"freshness": entry.freshness, "detail": entry.detail}
+                for namespace, entry in self._freshness.items()
+            },
+        }
+        try:
+            self._manifest_path.write_text(
+                json.dumps(payload, indent=1, ensure_ascii=False), encoding="utf-8"
+            )
+        except OSError:
+            pass
+
+    def _stamp_indexed(self) -> None:
+        self._last_indexed = datetime.now(timezone.utc)
+        self._save_manifest()
 
     @property
     def embedding_function(self) -> EmbeddingFunction:
@@ -241,7 +295,7 @@ class VectorIndex:
                 f"batch shares no id with this namespace, so it is a different corpus rather than "
                 f"a stale copy of this one",
             )
-            self._last_indexed = datetime.now(timezone.utc)
+            self._stamp_indexed()
             return SyncReport(
                 namespace=namespace,
                 upserted=0,
@@ -268,7 +322,7 @@ class VectorIndex:
             collection.delete(ids=to_delete)
 
         self._freshness[namespace] = SourceFreshness(namespace, freshness, detail)
-        self._last_indexed = datetime.now(timezone.utc)
+        self._stamp_indexed()
         return SyncReport(
             namespace=namespace,
             upserted=len(ids),

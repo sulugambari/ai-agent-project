@@ -11,6 +11,8 @@ from company_assistant.rag.contract import (
 )
 from company_assistant.rag.index import (
     ALL_ROLES,
+    DEFAULT_INDEX_DIR,
+    INDEX_MANIFEST,
     COMPANY_KNOWLEDGE,
     EMBEDDING_MODEL,
     PROJECT_BOARD,
@@ -29,6 +31,8 @@ from company_assistant.rag.semantic import SemanticRetriever
 
 __all__ = [
     "ALL_ROLES",
+    "DEFAULT_INDEX_DIR",
+    "INDEX_MANIFEST",
     "COMPANY_KNOWLEDGE",
     "DEFAULT_LEXICAL_WEIGHT",
     "DEFAULT_LIMIT",
