@@ -1004,6 +1004,66 @@ re-proposal deliberately keeps its id.
 now met, and "the approval boundary is proven structurally and unproven through the agent"
 is no longer true. The open question is closed.
 
+### F-39 · A display label was being sent as a model id — 402 that looked exactly like an exhausted free tier
+
+Every agent turn was failing with `PaymentRequiredResponseError`, while raw HTTP calls to
+the same model with the same prompt and the same five tool schemas succeeded at every size
+up to 9,000 tokens. The account showed `total_credits: 0`, so the obvious reading was that
+the free allowance had run out.
+
+**It was ours.** Dumping the outgoing request body showed:
+
+```
+model = "nvidia/nemotron-3.5-lightning:free via openrouter"
+```
+
+`AssistantService.model_name` returns `ModelChoice.describe()` — *"<model> via <provider>"* —
+which is correct as a **label** and was being passed straight into `build_agent` as an
+**id**. OpenRouter cannot resolve that string to a free model, routes it to something
+billable, and returns 402 against a zero balance. Fixed by adding `model_id` alongside
+`model_name`: the string to *send* and the string to *show* are different kinds of thing
+even when they contain the same words.
+
+**Introduced by the commit that made the status report the truth** (Phase 8/9 boundary,
+`108d5a6`). The display string was right; reusing it as an identifier is what broke. It
+survived undetected because the interface renders `model_name` and the interface was
+correct — so the disclosure looked healthier than the system was, which is the inverse of
+F-15.2 and F-25 and the same underlying confusion.
+
+**Why it took so long to find, and the lesson.** The failure was *maximally* misleading:
+402 on an account with zero credits, on a `:free` model, immediately after a real free-tier
+exhaustion (F-30) and a real credential outage. Three separate correct-looking explanations
+were available, and all three were wrong. What settled it was **dumping the actual request
+body** rather than reasoning about the response code — the manual two-step agent loop
+succeeded while `create_agent` failed, and the only remaining difference was what went on
+the wire.
+
+> A provider error names what the provider concluded, not what you did wrong. When a
+> failure has a plausible external explanation, capture the request before accepting it.
+
+### F-40 · D-010's prediction holds: the permission boundary survives a model that would not refuse
+
+The claim D-011 was recorded as **unverified** on, now measured on
+`nvidia/nemotron-3.5-lightning:free` — the model **F-32 rejected precisely because it would
+not refuse** a request for a restricted record, answering it at 3,775 characters instead.
+
+| Behaviour | Result |
+| --- | --- |
+| Grounded multi-source answer (P1) | **3/3** |
+| **Permission refusal, denied role** | **3/3**, no leak |
+| The same question, cleared role | **1/1** |
+| Conflicting sources | 1/3 |
+| Injection · abstention · action proposal | not scored — free-tier throttling |
+
+**The refusal case is the one that matters, and it passes 3 of 3 on the model that could not
+do it.** That is the difference between a behavioural control and a structural one, measured
+rather than asserted: the refusal no longer depends on the model's disposition, because it is
+decided from the access matrix before any search runs.
+
+**Not yet complete.** Three behaviours went unscored on free-tier throttling and the
+conflict case passed only 1 of 3, so this confirms the *access* claim and not the whole
+model. Both remain open, and neither is evidence about the design.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.

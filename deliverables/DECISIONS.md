@@ -467,7 +467,13 @@ Record meaningful product and architecture decisions, not every small edit.
   - Every scored evaluation row predates this switch **and** three system changes (F-32's
     prompt fix, D-010, the abstention-classifier work). They are not to be pooled with any
     re-run.
-- **Status:** Accepted, pending verification
+- **Verification (now done, partially).** `scripts/verify_behaviours.py` on the live key:
+  **P1 3/3**, **permission refusal 3/3 with no leak**, cleared role 1/1. **The refusal case
+  is the one that discriminates, and it passes on the model that F-32 said could not do it**
+  — D-010's premise holds, measured rather than asserted. Three behaviours went unscored on
+  free-tier throttling and the conflict case passed 1 of 3; both remain open and neither is
+  evidence about the design. Recorded as **F-40**.
+- **Status:** Accepted, access claim verified; full behaviour sweep still owed
 
 ### D-012 · Release recommendation — demonstrate with explicit limitations
 

@@ -200,6 +200,27 @@ class AssistantService:
 
         return resolve(self.model).describe()
 
+    @property
+    def model_id(self) -> str:
+        """The model id to SEND, as distinct from the label to SHOW.
+
+        These must not be the same string, and conflating them was a live defect:
+        `_agent_for` passed `model_name` - which is `ModelChoice.describe()`, i.e.
+        "<model> via <provider>" - straight into `build_agent`, so every request
+        went out with a model id of `nvidia/nemotron-3.5-lightning:free via
+        openrouter`. OpenRouter cannot resolve that to a free model, routes it to
+        something billable, and returns 402 Payment Required against a zero
+        balance - which reads exactly like an exhausted free tier and is not one.
+
+        Introduced in the commit that made the status report the truth: the
+        display string was correct, and it was then reused as an identifier. A
+        label and an id are different kinds of thing even when they contain the
+        same words.
+        """
+        from company_assistant.agent.providers import resolve
+
+        return resolve(self.model).model
+
     def index(self) -> VectorIndex:
         if self._index is None:
             self._index = VectorIndex(self.index_dir)
@@ -214,7 +235,7 @@ class AssistantService:
         """
         if f'{employee.employee_id}:{self.retrieval_mode}' not in self._agents:
             self._agents[f'{employee.employee_id}:{self.retrieval_mode}'] = build_agent(
-                employee, index=self.index(), model=self.model_name,
+                employee, index=self.index(), model=self.model_id,
                 database_path=self.database_path,
                 retrieval_mode=self.retrieval_mode,
             )
