@@ -743,6 +743,35 @@ flagship question.
 system whose refusal behaviour was unspecified. Any re-run is a different system, and the
 rows must not be pooled — the same discipline as the F-26 pre/post split.
 
+### F-33 · The interface dressed a refusal in the furniture of an answer
+The agent refused correctly — status `insufficient_evidence`, text opening *"I cannot
+access that record, and I have no permitted evidence about it"*, `DOC-HR-001` never
+touched, and it volunteered that `SLACK-ATLAS-103` was trying to instruct it. That is the
+**best** version of this behaviour, including the F-18 reporting control that was a coin
+flip on Groq.
+
+**A reader still saw it as an answer.** Reported as *"we were expecting a refusal but still
+got a response."*
+
+The behaviour was right and the **presentation** was wrong. A refusal rendered with exactly
+the same components as an answer: a prose block, and an expander headed **"Sources (1)"**
+open by default. "Sources" on an answer means *this is what supports the claim*; on a
+refusal the same word means *this is the record I am telling you I cannot use*. Same
+furniture, opposite meaning — and the furniture won.
+
+**Fixed three ways:**
+- the status banner now says **"REFUSED / NO ANSWER GIVEN"** rather than the softer "did
+  not find enough permitted evidence";
+- a line above the text states that what follows is an explanation, **not an answer**;
+- the citation block is relabelled **"Records inspected — not evidence for an answer"**,
+  collapsed by default, with a caption noting that reading them as support would be reading
+  the opposite of what happened.
+
+**Worth generalising.** Every other trust affordance in this project was built to make a
+*failure* visible. This one made a *correct refusal* invisible by making it look ordinary.
+Abstention is the behaviour the product is most proud of and the easiest to mistake for a
+non-answer, so it needs its own visual language rather than the answer's.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
