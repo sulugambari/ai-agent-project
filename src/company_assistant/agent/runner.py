@@ -247,7 +247,11 @@ def _derive_status(records: list[TurnRecord], cited: list[str], text: str) -> An
     # citation count matters: a refusal phrase inside a well-grounded answer is a
     # qualification, not an abstention
     if _reads_as_abstention(text, citation_count=len(cited)):
-        return "insufficient_evidence"
+        # Distinguish WHY. "You may not see this" and "we do not hold this" are
+        # different facts, and the interface renders them differently, so
+        # collapsing both into insufficient_evidence told the employee the company
+        # had no information when the truth was that they were not cleared for it.
+        return "forbidden" if _refusal_reason(text) == "permission" else "insufficient_evidence"
 
     return "answered"
 
@@ -274,6 +278,7 @@ _ABSTENTION_MARKERS = (
     "i do not know", "i don't know", "no information", "nothing in company",
     "unable to provide", "cannot provide", "no accessible", "not permitted to view",
     "did not find", "no such record", "no forecast", "not available in company",
+    "do not contain", "does not contain", "not contain that", "hold no answer", "holds no answer", "no such information", "not present in company knowledge", "nothing in company knowledge",
 )
 
 
@@ -298,6 +303,44 @@ _REFUSAL_PATTERN = re.compile(
     r"[^.]{0,60}?"
     r"(?:provide|share|disclose|show|reveal|access|retrieve|find|locate|answer|comply)"
 )
+
+
+#: Wording that names a PERMISSION reason. Kept separate from the absence markers
+#: because the two are different facts: "you may not see this" and "we do not have
+#: this" must never be blurred, and only one of them is knowable here. The agent
+#: cannot inspect a record the pre-filter denied, so it cannot honestly say the
+#: company holds no such thing - the reason has to come from the agent stating it,
+#: which the prompt now requires.
+_PERMISSION_MARKERS = (
+    "not permitted", "not cleared", "not authorised", "not authorized",
+    "cannot access", "can't access", "cannot share", "can't share",
+    "cannot provide that record", "outside your permissions", "restricted record",
+    "confidential record", "not allowed to share", "do not have permission",
+    "does not have permission", "lack the permission", "above your access",
+    "confidential compensation", "restricted compensation",
+)
+
+
+def _refusal_reason(text: str) -> str | None:
+    """Why the turn declined: 'permission', 'absence', or None if it did not.
+
+    Decided from the agent's own stated reason rather than by looking at what was
+    filtered out. Checking whether a denied record would have matched the question
+    would confirm that record's existence, which PRODUCT_BRIEF.md forbids - a
+    refusal must not reveal, confirm or characterise what it is refusing.
+
+    Permission wins ties. If a turn mentions both, the safer report is the one that
+    does not assert an absence the agent cannot verify.
+    """
+    normalized = normalize_prose(text).lower()
+    window = normalized[:max(_OPENING_CHARS * 2, int(0.4 * len(normalized)))]
+    if any(marker in window for marker in _PERMISSION_MARKERS):
+        return "permission"
+    if any(marker in window for marker in _ABSTENTION_MARKERS):
+        return "absence"
+    if _REFUSAL_PATTERN.search(window):
+        return "permission" if "permit" in window or "clear" in window else "absence"
+    return None
 
 
 def _reads_as_abstention(text: str, *, citation_count: int = 0) -> bool:

@@ -38,11 +38,16 @@ NO_ANSWER_STATUSES = frozenset({"insufficient_evidence", "forbidden", "error"})
 STATUS_HELP = {
     "answered": ("success", "Grounded in the sources listed below."),
     "evidence_found": ("info", "Baseline evidence only - no model reasoning was applied."),
-    "insufficient_evidence": ("warning", "REFUSED / NO ANSWER GIVEN — the assistant could not "
-                                         "answer from permitted evidence, and said so rather "
-                                         "than assembling something plausible."),
-    "forbidden": ("error", "REFUSED — this employee is not cleared for the records that would "
-                           "answer this. No answer was given."),
+    # Two different facts, deliberately worded so they cannot be confused.
+    # `forbidden` says nothing about whether the company holds the information -
+    # the assistant cannot see a record the pre-filter denied, so claiming absence
+    # would be a guess presented as a fact.
+    "insufficient_evidence": ("warning", "🔍 **NO ANSWER FOUND** — the company's own records do "
+                                         "not contain an answer to this question. The assistant "
+                                         "said so rather than assembling something plausible."),
+    "forbidden": ("error", "⛔ **REFUSED — NOT PERMITTED** — this employee is not cleared for the "
+                           "records that would answer this. Nothing was answered, and this says "
+                           "nothing about whether the company holds the information."),
     "error": ("error", "Something failed. Draw no conclusion from this answer."),
 }
 
@@ -95,7 +100,7 @@ def render_citations(answer: Answer) -> None:
     # and the same expander, so readers reported "it still answered" when the text
     # plainly began "I cannot access that record". Same furniture, opposite meaning.
     refused = answer.status in NO_ANSWER_STATUSES
-    label = (f"Records inspected ({len(answer.citations)}) — not evidence for an answer"
+    label = (f"⛔ Records inspected ({len(answer.citations)}) — not evidence for an answer"
              if refused else f"Sources ({len(answer.citations)})")
     with st.expander(label, expanded=not refused):
         if refused:
@@ -129,9 +134,14 @@ def render_answer(answer: Answer, *, answer_id: str | None = None, latency_ms: f
     st.caption(meta)
 
     render_warnings(answer)
-    if answer.status in NO_ANSWER_STATUSES:
-        st.caption("⛔ **The assistant declined to answer.** What follows is its explanation, "
-                   "not an answer to the question.")
+    if answer.status == "forbidden":
+        st.caption("⛔ **Refused on permissions.** What follows is the assistant's explanation, "
+                   "not an answer. It does not confirm or deny that such a record exists.")
+    elif answer.status == "insufficient_evidence":
+        st.caption("🔍 **No answer found in company knowledge.** What follows is the "
+                   "assistant's explanation, not an answer to the question.")
+    elif answer.status == "error":
+        st.caption("⚠️ **The request failed.** Draw no conclusion from anything below.")
     st.markdown(answer.text or "_The assistant returned no text._")
     render_citations(answer)
 

@@ -772,6 +772,48 @@ furniture, opposite meaning — and the furniture won.
 Abstention is the behaviour the product is most proud of and the easiest to mistake for a
 non-answer, so it needs its own visual language rather than the answer's.
 
+### F-34 · "You may not see this" and "we do not have this" are different facts
+Every refusal was reported as `insufficient_evidence`, including the request for the
+restricted compensation review. That told the employee **the company had no information**,
+when the truth was that they **were not cleared for it**. `AnswerStatus` already had
+`forbidden`; nothing ever returned it, because `_derive_status` only produced it when a
+tool explicitly denied *and* nothing was retrieved — and the permission pre-filter means a
+restricted record is never a candidate, so no denial event ever occurs.
+
+**The constraint that shaped the fix.** The reason cannot be derived by checking what the
+filter removed: asking "would a denied record have matched this question?" confirms that
+record's existence, which `PRODUCT_BRIEF.md` forbids a refusal from doing. So the reason
+has to come from the agent **stating** it, and the prompt now requires that:
+
+- *not permitted* — name the reason, and **do not** claim the company holds no such
+  information, because that is unknowable from inside the permitted set;
+- *not present* — the records genuinely do not contain the answer.
+
+`_refusal_reason()` classifies on that stated reason, with **permission winning ties**: if a
+turn says both, the safer report is the one that does not assert an absence the agent
+cannot verify.
+
+**A second defect appeared on the way.** The first attempt produced `answered`, because the
+model opened with *"I found a record that mentions compensation review, but I need to
+report what I discovered…"* — it led with the injection report. My prompt asked for both a
+refusal and an attack report without saying **which comes first**, and the classifier looks
+for a refusal in the opening. Prompt and classifier disagreed.
+
+Fixed by ordering it explicitly: the refusal goes in the **first sentence**, and the
+override is reported after it, never instead of or before it. Then 3 of 3 runs returned
+`forbidden` with the reason correctly classified, no leak, and the attack still reported.
+
+**Interface.** `forbidden` renders **⛔ REFUSED — NOT PERMITTED**, and says explicitly that
+it *does not confirm or deny that such a record exists*. `insufficient_evidence` renders
+🔍 **NO ANSWER FOUND** and is now reserved for what the user asked it to mean: the sources
+genuinely hold nothing on the question.
+
+**Residual, recorded rather than glossed.** In one of the three runs the model added *"The
+company's knowledge base does not contain the restricted compensation review"* — exactly
+the absence claim the prompt forbids. The **status** was still correct, because permission
+wins ties, so the structural control held while behavioural compliance was partial. The
+same split the threat model predicts.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
