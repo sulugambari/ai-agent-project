@@ -446,10 +446,17 @@ with assistant_tab:
         # No heading here: the welcome line above already says what this is, and a
         # second title pushed the first question below the fold.
 
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
+        # Keyed per profile, not one flat list. The agent's own short-term memory
+        # was already scoped this way (`conversation_id=f"ui-{employee_key}"`
+        # below), but the rendered transcript was not, so switching from Leo to
+        # Priya showed Leo's questions in Priya's chat - a display bug, not an
+        # agent one, but a real one: it makes the role-switch demonstration look
+        # like the assistant remembers across identities when it never did.
+        if "chat_by_profile" not in st.session_state:
+            st.session_state.chat_by_profile = {}
+        messages = st.session_state.chat_by_profile.setdefault(employee_key, [])
 
-        for message in st.session_state.messages:
+        for message in messages:
             with st.chat_message(message["role"]):
                 if message["role"] == "user":
                     st.markdown(message["content"])
@@ -461,7 +468,7 @@ with assistant_tab:
                     )
                     render_feedback(message["answer_id"], message["answer"]["retrieval_mode"])
 
-        if not st.session_state.messages:
+        if not messages:
             st.info(
                 "**Try one of these**\n\n"
                 "- *Is Atlas ready to release, and which conditions are still unmet?*\n"
@@ -478,7 +485,7 @@ with assistant_tab:
         render_pending_actions(employee)
 
     if question := st.chat_input("Ask about projects, customers, policies, or work items"):
-        st.session_state.messages.append({"role": "user", "content": question})
+        messages.append({"role": "user", "content": question})
         with left:
             with st.chat_message("user"):
                 st.markdown(question)
@@ -487,10 +494,10 @@ with assistant_tab:
                     result = service.ask_baseline(question, employee)
                 else:
                     result = service.ask(question, employee,
-                                         conversation_id=f"ui-{st.session_state['employee_key']}")
+                                         conversation_id=f"ui-{employee_key}")
                 render_answer(result.answer, answer_id=result.answer_id,
                               latency_ms=result.latency_ms)
-        st.session_state.messages.append({
+        messages.append({
             "role": "assistant",
             "answer": result.answer.model_dump(mode="json"),
             "answer_id": result.answer_id,
