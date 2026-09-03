@@ -185,7 +185,17 @@ class AssistantService:
     # -- lazy resources ------------------------------------------------------
     @property
     def model_name(self) -> str:
-        return self.model or os.getenv("GROQ_MODEL") or DEFAULT_MODEL
+        """What is actually serving turns, including the gateway when there is one.
+
+        Previously this read GROQ_MODEL directly, so with LLM_PROVIDER=openrouter
+        the interface reported a Groq model while OpenRouter served the request -
+        a status wrong by construction, the same family of defect as F-15.2 and
+        F-25. It now asks the provider boundary, so the disclosure follows the
+        configuration rather than a hardcoded assumption.
+        """
+        from company_assistant.agent.providers import resolve
+
+        return resolve(self.model).describe()
 
     def index(self) -> VectorIndex:
         if self._index is None:

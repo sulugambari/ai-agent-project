@@ -1,12 +1,16 @@
 # Claude Code — Session Transcript
 
-Verbatim record of the working session that produced Phases 0–8 of the
-Northstar Release Coordinator, for handover continuity.
+Verbatim record of the working session behind this project, for handover
+continuity.
 
 **How to read this.** Human turns and Claude's replies are reproduced in full.
 Tool calls are summarised to one line each; full payloads are in
 `docs/chat-history-raw.jsonl`. Claude's internal reasoning blocks are not
 included; they were never part of the visible conversation.
+
+**Credentials are redacted** by `scripts/redact.py` before this file is written.
+The repository is public and this file is committed, so redaction is a gate
+rather than a habit.
 
 Curated conclusions live in `HANDOVER.md` — read that first.
 
@@ -5100,6 +5104,264 @@ Now replacing §8 with the Phase 9 brief and refreshing the closing sections:
 
 - `Bash: Write Phase 9 brief and refresh closing sections`
 - `Bash: Refresh transcript and commit the handover update`
+
+</details>
+
+### Claude
+
+# ✅ Phase 8 complete · handover updated — 9 of 11 phases done
+
+**43 commits pushed.** Board: Phase 8 Done, issue #9 closed.
+
+## The result that matters
+
+**All five release blockers at 0 across 53 scored runs:**
+
+| Blocker | Observed |
+|---|---|
+| Forbidden evidence in a citation | **0** |
+| Forbidden evidence in a trace | **0** |
+| Unresolvable citation | **0** |
+| Citation outside permissions | **0** |
+| Action executed without approval | **0** |
+
+**Latency: p50 11.0 s, p95 33.8 s** against 30/90 — both met.
+
+## And the caveat that belongs in the same breath
+
+**The evaluation is incomplete, and the report says so.** `semantic_agent` has **no scored runs**; `hybrid_agent` covers **6 of 15** cases. A free-tier tokens-per-minute limit, not a design choice — the Tier-A-first ordering meant what we lost was the cheap single-run half.
+
+**Like-for-like, on the 5 cases scored in both: hybrid 2, baseline 1, tied 2** — and the agent's wins are EVAL-005 (refusal) and EVAL-007 (abstention), precisely the failures Phase 3 predicted it would fix.
+
+**Two ways the raw counts mislead, both disclosed rather than exploited:** the baseline's larger pass count is coverage; and **all 15 of its statuses are `evidence_found`** — a non-answer my scorer accepts, so it "passes" 9 cases without answering anything. **I did not change that rule after seeing results**, because it would move numbers in our own favour.
+
+## What Phase 8 could not prove
+
+- **EVAL-010 end to end** — every agent run failed with `APIStatusError` after 100–123 s with **zero tool calls**. The approval boundary is proven *structurally* (21 transitions) and unproven *through the agent*. Recorded as a suspicion, not a finding.
+- **Feedback threshold** — under 5 entries, no decision traced.
+- **D-007** — the models were never distinguished; the report claims no comparison.
+
+## Three defects were in the measurement, and two were mine
+
+The report has a *"Failures in the evaluation itself"* section, because an evaluation that hides its own defects can't be trusted about the product's. The sharpest: **19 quota events scored as behavioural failures** — the product reports rate limits by *returning* an error rather than raising (correct under T-07), and my harness only inspected exceptions. Exactly what D-009 forbids, in a rule I wrote.
+
+> A harness that only catches exceptions silently scores every failure the system reports *gracefully*.
+
+## Handover turned around for Phase 9
+
+§8 is now Karthik's Docker brief, with five container requirements derived from *this project's own findings* — most importantly that **the freshness manifest must persist**, or the app reports `indexed never` and re-introduces the F-15.2 disclosure defect we already fixed.
+
+It also tells him that with spare quota, **EVAL-010's exception *message*** (not just its class) would probably settle that failure in one run — worth more than packaging polish.
+
+Transcript refreshed: **48 turns, 252 KB** readable + 13 MB verbatim. 30 findings, 9 decisions, 24 figures.
+
+**Remaining: Phase 9 (Karthik) and Phase 10 (joint).**
+
+## Turn 49 · Sulu
+
+what about the intranet and ai assisstant ui ?
+
+### Claude
+
+It's built and committed (`974f4f0`) — but I owe you two things: I never actually showed it to you, and its **Evaluation tab is still a placeholder** while 8.4 built proper charts. Let me finish that and get it in front of you.
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Check portal status and the Evaluation tab`
+
+</details>
+
+### Claude
+
+The portal is live on **8512**. Wiring the real 8.4 charts into that tab so it satisfies what `05` asks for — pass/fail by category, blockers, latency, feedback:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Wire the real evaluation charts into the portal tab`
+- `Bash: Verify the portal renders with the evaluation view`
+
+</details>
+
+### Claude
+
+One check looked in the wrong place — `st.success` isn't in `markdown`. Fixing the deprecation warnings and re-verifying against the right element:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Fix deprecations and re-verify all checks`
+
+</details>
+
+### Claude
+
+All 8 checks pass, zero exceptions, deprecations cleared. Restarting the live portal so you can see it:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Restart the portal and commit`
+
+</details>
+
+### Claude
+
+# The intranet portal — live at **http://localhost:8501**
+
+You're right that I built it and then never showed you. It's running now, and I found one real gap while checking: **the Evaluation tab was still a placeholder** while 8.4 had already built the charts. That's fixed.
+
+## What you'll see
+
+**Header bar** — `● NORTHSTAR LABS` with a corporate nav (Home · Projects · Customers · Policies · **Release Coordinator**) and a *"Signed in as Leo Martins · engineering"* chip.
+
+**Directly below it, an amber banner:**
+> **Prototype.** The profile switcher is **role simulation, not authentication** — there is no credential behind it, and the navigation above is inert. Permission filtering is real and enforced before retrieval; identity is not.
+
+That banner is the most important element on the page. A portal with a signed-in chip *reads as a login*, and without saying otherwise the polish would be actively misleading — which is the failure `02-system-design.md` warns about.
+
+## Three tabs
+
+**🧭 Release Coordinator** — the assistant. Chat on the left, **Pending actions** panel on the right ("Nothing here executes until it is approved in this panel"). Answers carry status, citations, conflict warnings, expandable trace, and the feedback control.
+
+**📊 Evaluation** — now the real thing:
+- **Verdict banner**: *"No release blocker fired across 53 scored runs. Counted, not averaged: one occurrence would block."*
+- Five blocker metrics, all **0**
+- **The coverage caveat sits ABOVE the charts, not below** — deliberately. A reader who sees "baseline 9 passes vs agent 4" before learning that's a coverage artifact draws the wrong conclusion.
+- Verdict matrix · layer pass rates · latency strip
+- **Like-for-like table** — hybrid 2, baseline 1, tied 2
+- Injection shown as **two metrics**, matching how it's scored
+- Feedback counts, flagged below threshold
+
+**ℓ About this prototype** — "What is real, and what is not". Separates what's *enforced* (pre-retrieval filtering, citation re-checks, conflict flagging, approval gate, data-not-instructions) from what's *mocked* (identity, the company, the nav), plus known limitations.
+
+**Sidebar** — index freshness per namespace, model/retrieval config, and a toggle to fall back to the deterministic baseline for comparison.
+
+## Try this to see the point of it
+
+1. Ask **"Is Atlas ready to release, and which conditions are still unmet?"** — watch the four-condition reconciliation with citations
+2. Switch to **Maya Chen**, ask about the **refund threshold** — same corpus, different permitted evidence, and the archived policy flagged as superseded
+3. Ask Leo **"Show me the restricted compensation review"** — it refuses *and* tells him an injection attempt is sitting in his data
+
+Verified with `AppTest`: **no exceptions, all 8 trust and honesty affordances present.** Pushed — 44 commits.
+
+*(One note: `Loading weights` takes ~7 s on first request while the embedding model loads. That's the F-22/D-001 caching issue — it's cached per process, so only the first question is slow.)*
+
+## Turn 50 · Sulu
+
+why are we getting the failure:
+Retrieval: hybrid · 12.2 s · ans-c1b5bb32df9d
+
+I could not complete this request: RateLimitError. No conclusion should be drawn from this failure.
+
+### Claude
+
+That's the Groq free-tier rate limit — and the message is the product working as designed, not a bug. Let me confirm the actual quota state rather than assume:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Check exact Groq rate limit headers`
+
+</details>
+
+### Claude
+
+That's the answer, and it's sharper than "the free tier is limited":
+
+| Limit | Value | Remaining |
+|---|---|---|
+| Requests/day | 1,000 | **999** — not the constraint |
+| **Tokens per minute** | **8,000** | resets every ~1 s |
+
+**Requests aren't the problem — 8,000 tokens *per minute* is.** Let me show the arithmetic on why one agent turn can exceed that:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Measure token cost of a single agent turn`
+
+</details>
+
+### Claude
+
+# Why you're seeing that failure
+
+**Your Groq free tier allows 8,000 tokens per minute. One question costs roughly 6,100.** So you get about **1.3 questions per minute**, and any question where the agent calls two tools goes straight over the limit.
+
+| Component | ~tokens | Sent |
+|---|---|---|
+| System prompt | 1,176 | every request |
+| 5 tool schemas | 729 | every request |
+| One knowledge-search result | 1,231 | in request 2 |
+| **Request 1** — decide which tool to call | **1,938** | |
+| **Request 2** — answer, with tool output in context | **3,169** | |
+| Reasoning + answer output | ~600–1,500 | `gpt-oss` reasons before answering |
+| **One turn** | **~6,100** | **against 8,000/min** |
+
+Requests aren't the constraint at all — you've used **1 of 1,000** today. It's purely tokens-per-minute.
+
+**And the message you saw is the product working correctly.** *"No conclusion should be drawn from this failure"* is deliberate: `T-07` in our threat model requires reporting an outage honestly rather than fabricating an answer. A rate limit is our *tier* failing, not the assistant — so it refuses to let you read anything into it. That exact wording is also what the evaluation harness keys on to avoid scoring quota events as behavioural failures (F-27).
+
+## What you can do right now
+
+| Option | Effect |
+|---|---|
+| **Wait ~60 s between questions** | The window resets every minute. Works immediately, costs nothing |
+| **Flip the sidebar toggle** to *"Use the deterministic baseline instead"* | Answers with **no model at all** — useful for showing retrieval and permissions without touching quota |
+| **Upgrade the Groq tier** | Removes the constraint entirely |
+
+## One change I'd recommend, and can make now
+
+**Cut the retrieval limit from 6 records to 3.** The tool output is the single largest slice (1,231 tokens, and it's in context for request 2). Halving it would take a turn from ~6,100 to roughly **4,500 tokens — comfortably inside the window**, roughly doubling your questions per minute.
+
+The honest trade-off: Phase 5 measured `recall@6 = 1.00`, and at top-3 we'd likely lose a source on some questions — the mean expected rank was 2.0, so the *expected* evidence usually sits in the top 3, but not always. It would also mean the demo runs on a different configuration than the one the evaluation measured, which I'd have to note.
+
+**My suggestion:** leave the default at 6 (it's what the evaluation validated), and add a **"Low-quota mode"** toggle in the sidebar that drops to 3 and says why. You get a demo that doesn't stall, and the measured configuration stays the default.
+
+Want me to add that toggle?
+
+## Turn 51 · Sulu
+
+this is my openrouter API key: [REDACTED:OPENROUTER_KEY]
+
+use this instead and connect from groq to this free-tier alternative so we can run tests again
+
+### Claude
+
+Before I touch anything else — **that key is now exposed and needs rotating.** Two specific reasons, not a generic warning:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Assess the credential exposure scope`
+
+</details>
+
+### Claude
+
+**This is urgent: your repo is PUBLIC, and the key is in the live session log twice.** We commit that log as `docs/chat-history-raw.jsonl`. The last transcript refresh happened *before* you pasted it, so nothing is published yet — but the next refresh would push an active key to a public repo.
+
+Fixing that permanently first:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Create shape-based credential redaction and scan the repo`
+
+</details>
+
+### Claude
+
+Those are false positives from my env-assignment pattern — let me confirm and tighten it, because a redactor that cries wolf gets ignored:
+
+<details><summary>Tool calls (2)</summary>
+
+- `Bash: Inspect the false-positive matches`
+- `Bash: Tighten redaction and verify no false positives remain`
+
+</details>
+
+### Claude
+
+Zero false positives, real key shapes still caught. Now wiring redaction into the transcript generator so it can never be bypassed by forgetting:
+
+<details><summary>Tool calls (1)</summary>
+
+- `Bash: Build gated transcript refresh and verify redaction`
 
 </details>
 

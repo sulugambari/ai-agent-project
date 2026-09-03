@@ -28,10 +28,10 @@ from typing import Any
 from langchain.agents import create_agent
 from langchain.agents.middleware import ToolCallLimitMiddleware
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-from langchain_groq import ChatGroq
 
 from company_assistant.agent.prompt import SYSTEM_PROMPT
 from company_assistant.database import DATABASE_PATH
+from company_assistant.agent.providers import build_chat_model, resolve
 from company_assistant.models import (ActionProposal, Answer, AnswerStatus, Citation,
                                       EmployeeContext, RetrievalMode)
 from company_assistant.rag import VectorIndex
@@ -134,7 +134,9 @@ def build_agent(
     """
     toolset = build_toolset(employee, index=index, database_path=database_path,
                             retrieval_mode=retrieval_mode)
-    llm = ChatGroq(model=model or os.getenv("GROQ_MODEL") or DEFAULT_MODEL, temperature=TEMPERATURE)
+    # One boundary decides the provider (05 optional extension). Groq stays the
+    # core path; OpenRouter is selected with LLM_PROVIDER.
+    llm, _choice = build_chat_model(model)
     agent = create_agent(
         llm,
         tools=list(toolset.tools),
