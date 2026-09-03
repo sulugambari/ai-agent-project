@@ -9,9 +9,8 @@ Phase 7 boundary, and again for Phase 9. Now Phases 0–9 are complete and **Pha
 joint**. The earlier phase briefs it carried are in the git history.)*
 
 - **Last updated:** 3 September 2026, after **Phase 9 closed**
-- **State:** Phases 0–9 complete · **Phase 10 open** · 54 commits, all on `main`.
-  **Not pushed** since `46e7ffc` — the last three commits are local and awaiting the
-  human team's authorisation
+- **State:** Phases 0–9 complete · **Phase 10 open** · 55 commits, all on `main`, pushed.
+  Board: 10 of 11 Done, Phase 10 In Progress
 - **Retrieval default:** hybrid, `lexical_weight = 0.6` (D-006). **F-15.1 is fixed at
   source** — the rag default and the tool constant now both read 0.6 and are asserted equal
 - **Release blockers: all five at 0** across 53 scored runs
@@ -26,12 +25,16 @@ joint**. The earlier phase briefs it carried are in the git history.)*
   produced by refusals that made **zero tool calls**. See **F-36** and **D-010**; this is
   the most important change since Phase 8
 - **Packaged:** `docker compose up --build` → 127.0.0.1:8501 and :8000. Verified 16/16
-  from destroyed volumes by `scripts/verify_container.py`. The image is **9.57 GB** and
-  the reason is recorded in §8
+  from destroyed volumes by `scripts/verify_container.py`. The image is **3.24 GB**, of
+  which 2.7 GB is CUDA that never runs — see §8
 - **Board:** <https://github.com/users/sulugambari/projects/12>
-- **Full session transcript:** `docs/CHAT_HISTORY.md` (readable, 21 turns) and
-  `docs/chat-history-raw.jsonl` (verbatim, 8.4 MB). **Both cover Phases 0–5 only** — the
-  Phases 6–7 session is not in them, so the commit messages are the record for those
+- **Full session transcript:** `docs/CHAT_HISTORY.md` (readable) and
+  `docs/chat-history-raw.jsonl` (verbatim). **Both cover Phases 0–5 only** — the Phases
+  6–7 session is not in them, so the commit messages are the record for those.
+  ⚠️ **Do not run `scripts/refresh_transcript.py` casually.** It rewrites both files from
+  the *most recently modified* session log, so running it now would replace the Phases 0–5
+  record with whatever session is current. Decide what the transcript is meant to hold
+  before regenerating it
 
 ---
 
@@ -1147,9 +1150,15 @@ ledger.
 Phase 6 evidence went into `phase_04_live_github.ipynb` rather than a third notebook, so
 the bootstrap, chart theme, `save_chart()` and `probe()` harness are reused rather than
 duplicated — the filename understates what it holds. And **the board was not updated and
-nothing was pushed**: both are outward-facing actions left for the human team to
-authorise. Steps 6.1–6.4 and 7.1–7.4 are unticked on [#7](https://github.com/sulugambari/ai-agent-project/issues/7)
-and [#8](https://github.com/sulugambari/ai-agent-project/issues/8) despite being done.
+nothing was pushed** at the time; both were outward-facing actions left for the human team
+to authorise. Those are now reconciled: steps 6.1–6.5 and 7.1–7.4 are ticked, and issues
+[#7](https://github.com/sulugambari/ai-agent-project/issues/7) and
+[#8](https://github.com/sulugambari/ai-agent-project/issues/8) are closed.
+
+**Phase 9 evidence is a script, not a notebook cell** — `scripts/verify_container.py`. A
+container property has to be checked against a running container, and a notebook cannot be
+the artefact for something a teammate is meant to reproduce from a clean checkout. It is
+re-runnable and destroys its own volumes first, so its evidence cannot be a stale pass.
 
 ## 10 · Known gotchas
 
