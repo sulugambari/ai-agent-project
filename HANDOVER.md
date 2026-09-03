@@ -545,6 +545,48 @@ record our tier.
 failure mode the system reports *gracefully*. Graceful degradation and measurement are in
 tension, and the measurement side has to know every shape the degradation can take.
 
+### F-28 · The agent answers P1 correctly but cites the defining document in only 1 of 3 runs
+Tier A, 3 runs, `hybrid_agent`. All three answered correctly and none leaked, but the
+release brief that **names the four release conditions** — `DOC-ATLAS-403` — appears in the
+citations of only **run 3**:
+
+| Run | Cited | `DOC-ATLAS-403` |
+| --- | --- | --- |
+| 1 | GH-142, SLACK-ATLAS-102, GH-149, SLACK-ATLAS-101 | **missing** |
+| 2 | GH-142, SLACK-ATLAS-102, GH-149, SLACK-ATLAS-101 | **missing** |
+| 3 | DOC-ATLAS-403, GH-142, SLACK-ATLAS-102, GH-149, SLACK-ATLAS-101 | present |
+
+So the answer is right while the **grounding is incomplete**: it reports the four
+conditions without citing the document that defines them. Retrieval is not the cause —
+`DOC-ATLAS-403` ranks **first** on P1 under hybrid (step 5.5). The agent had it and did
+not cite it.
+
+This is the honest shape of F-17 variance on the flagship question, and it is why the
+priority-question threshold is *"3 of 3, each passing ≥ 2 of 3 runs"* rather than a single
+demonstration: one run of P1 would have looked perfect or looked broken depending which
+one you saw.
+
+### F-27 update · Fixing infrastructure detection too narrowly hid a whole case
+F-27 fixed rate-limit detection specifically. That was too narrow: an `APIStatusError` on
+EVAL-010 still reached the scorer, and **three runs that never got as far as a tool call
+were recorded as a behavioural `Partial`.** The product's own message reads *"No conclusion
+should be drawn from this failure"* — a machine-readable instruction the harness scored
+straight past.
+
+Generalised: an `error` status carrying that disclaimer is infrastructure, whatever the
+underlying exception. The three rows are reclassified as unscored and will be retried.
+
+**This materially changed a threshold verdict, which is why it matters.** With the failed
+API calls counted as product latency, p95 was **115.1 s against a 90 s threshold — a
+miss.** Excluding them: **p50 11.0 s, p95 33.8 s — both met.** The breach was entirely
+provider failures, and reporting it as a latency problem would have been wrong.
+
+**EVAL-010 remains unexplained and needs a diagnostic when quota returns.** All three runs
+took 100–123 s, made **zero** tool calls, and ended in `APIStatusError`. The exception
+class is captured but not its message, so the cause is unknown. Worth suspecting a
+request-size or provider-side limit on the action-proposal turn specifically, since it is
+the only case that asks the agent to compose a payload.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.

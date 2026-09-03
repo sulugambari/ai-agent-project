@@ -222,25 +222,111 @@ def render_pending_actions(employee) -> None:
                     st.rerun()
 
 
-st.set_page_config(page_title="Northstar Release Coordinator", page_icon="🧭", layout="centered")
-st.title("Northstar Release Coordinator")
-st.caption("Answers from Northstar Labs' private knowledge — with sources, permissions, and refusals.")
+# ---------------------------------------------------------------------------
+# Northstar Labs intranet shell
+#
+# The chrome is presentation only: every trust affordance Karthik built stays
+# exactly where it was and nothing is moved behind a nicer surface.
+# `02-system-design.md` warns not to let visual polish replace trust and
+# evaluation work, and a convincing corporate shell is precisely where that
+# would happen - so the answer status, citations, conflict warnings, tool trace,
+# index freshness, approval queue and feedback control are all still on the page.
+#
+# The one thing a company-looking portal MUST not do is imply real
+# authentication. It has a profile switcher and a "signed in as" chip, which read
+# as a login to anyone who has used an intranet. The banner below says plainly
+# that this is role simulation, because that gap is a residual risk in
+# ACCESS_MATRIX.md and hiding it behind convincing chrome would be the dishonest
+# version of this UI.
+# ---------------------------------------------------------------------------
+st.set_page_config(
+    page_title="Northstar Labs · Release Coordinator",
+    page_icon="🧭",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+BRAND_INK = "#172033"
+BRAND_ACCENT = "#2a78d6"
+
+st.markdown(
+    f"""
+    <style>
+      /* tighten Streamlit's default page padding so the header reads as a bar */
+      .block-container {{ padding-top: 1.2rem; max-width: 1200px; }}
+      .ns-bar {{
+        display: flex; align-items: center; gap: 1rem;
+        background: {BRAND_INK}; color: #fff;
+        padding: 0.7rem 1.1rem; border-radius: 10px; margin-bottom: 0.35rem;
+      }}
+      .ns-mark {{
+        font-weight: 700; letter-spacing: .02em; font-size: 1.02rem;
+        display: flex; align-items: center; gap: .5rem;
+      }}
+      .ns-dot {{
+        width: 9px; height: 9px; border-radius: 50%;
+        background: {BRAND_ACCENT}; display: inline-block;
+      }}
+      .ns-nav {{ display: flex; gap: 1.1rem; font-size: .86rem; opacity: .72; }}
+      .ns-spacer {{ flex: 1 1 auto; }}
+      .ns-who {{
+        font-size: .82rem; background: rgba(255,255,255,.10);
+        padding: .32rem .7rem; border-radius: 999px; white-space: nowrap;
+      }}
+      .ns-proto {{
+        font-size: .78rem; color: #7a4b00; background: #fff4d6;
+        border: 1px solid #f0d089; border-radius: 8px;
+        padding: .45rem .7rem; margin-bottom: 1rem;
+      }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 service = get_service()
 status = service.status()
 
+# The switcher lives in the sidebar (below) but the chip has to render in the
+# header, so identity is resolved first.
+employee_key = st.session_state.get("employee_key", next(iter(EMPLOYEES)))
+employee = EMPLOYEES[employee_key]
+
+st.markdown(
+    f"""
+    <div class="ns-bar">
+      <div class="ns-mark"><span class="ns-dot"></span>NORTHSTAR LABS</div>
+      <div class="ns-nav"><span>Home</span><span>Projects</span><span>Customers</span>
+        <span>Policies</span><span style="opacity:1;font-weight:600">Release Coordinator</span></div>
+      <div class="ns-spacer"></div>
+      <div class="ns-who">Signed in as <b>{employee.display_name}</b> · {employee.role.replace('_', ' ')}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="ns-proto"><b>Prototype.</b> The profile switcher is <b>role simulation, '
+    'not authentication</b> — there is no credential behind it, and the navigation above is '
+    'inert. Permission filtering is real and enforced before retrieval; identity is not.</div>',
+    unsafe_allow_html=True,
+)
+
+assistant_tab, evaluation_tab, about_tab = st.tabs(
+    ["🧭  Release Coordinator", "📊  Evaluation", "ℹ️  About this prototype"]
+)
+
 with st.sidebar:
-    st.header("Who is asking")
-    employee_key = st.selectbox(
+    st.markdown("### Who is asking")
+    st.selectbox(
         "Employee profile",
         options=list(EMPLOYEES),
         format_func=lambda key: f"{EMPLOYEES[key].display_name} — {EMPLOYEES[key].role}",
+        key="employee_key",
     )
-    employee = EMPLOYEES[employee_key]
+    employee = EMPLOYEES[st.session_state["employee_key"]]
     st.caption("Identity is bound into the tools before the model runs. "
                "The assistant has no way to change who it is asking as.")
 
-    st.header("Index")
+    st.markdown("### Index")
     st.metric("Indexed units", status.index_units)
     st.caption(f"Last indexed: `{status.index_last_indexed}`")
     if status.index_degraded:
@@ -248,7 +334,7 @@ with st.sidebar:
     for name, freshness, detail in status.index_sources:
         st.caption(f"`{name}` — **{freshness}**" + (f" · {detail}" if detail else ""))
 
-    st.header("Configuration")
+    st.markdown("### Configuration")
     st.caption(
         f"Model `{status.model}` · retrieval `{status.retrieval_mode}` "
         f"(lexical weight {status.lexical_weight}) · at most {status.max_tool_calls} tool calls per question"
@@ -261,42 +347,124 @@ with st.sidebar:
     )
 
     counts = service.feedback_summary()
-    st.header("Feedback")
+    st.markdown("### Feedback")
     st.caption(f"👍 {counts['up']} · 👎 {counts['down']} · {counts['total']} total")
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+with assistant_tab:
+    left, right = st.columns([0.62, 0.38], gap="large")
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        if message["role"] == "user":
-            st.markdown(message["content"])
-        else:
-            render_answer(
-                Answer.model_validate(message["answer"]),
-                answer_id=message.get("answer_id"),
-                latency_ms=message.get("latency_ms"),
+    with left:
+        st.markdown(f"#### Ask about release readiness")
+        st.caption(
+            "Answers come only from Northstar's own Slack, email, documents, work items "
+            "and business records — with a source for every claim, and a refusal when the "
+            "evidence is missing or outside your permissions."
+        )
+
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                if message["role"] == "user":
+                    st.markdown(message["content"])
+                else:
+                    render_answer(
+                        Answer.model_validate(message["answer"]),
+                        answer_id=message.get("answer_id"),
+                        latency_ms=message.get("latency_ms"),
+                    )
+                    render_feedback(message["answer_id"], message["answer"]["retrieval_mode"])
+
+        if not st.session_state.messages:
+            st.info(
+                "Try: **Is Atlas ready to release, and which conditions are still unmet?** — "
+                "or switch to Maya Chen and ask about the current refund threshold to see the "
+                "same corpus answer differently.",
+                icon="💡",
             )
-            render_feedback(message["answer_id"], message["answer"]["retrieval_mode"])
 
-if question := st.chat_input("Ask about projects, customers, policies, or work items"):
-    st.session_state.messages.append({"role": "user", "content": question})
-    with st.chat_message("user"):
-        st.markdown(question)
+    with right:
+        st.markdown("#### Pending actions")
+        st.caption("Nothing here executes until it is approved in this panel.")
+        render_pending_actions(employee)
 
-    with st.chat_message("assistant"), st.spinner("Searching company knowledge..."):
-        if use_baseline:
-            result = service.ask_baseline(question, employee)
+    if question := st.chat_input("Ask about projects, customers, policies, or work items"):
+        st.session_state.messages.append({"role": "user", "content": question})
+        with left:
+            with st.chat_message("user"):
+                st.markdown(question)
+            with st.chat_message("assistant"), st.spinner("Searching company knowledge..."):
+                if use_baseline:
+                    result = service.ask_baseline(question, employee)
+                else:
+                    result = service.ask(question, employee,
+                                         conversation_id=f"ui-{st.session_state['employee_key']}")
+                render_answer(result.answer, answer_id=result.answer_id,
+                              latency_ms=result.latency_ms)
+        st.session_state.messages.append({
+            "role": "assistant",
+            "answer": result.answer.model_dump(mode="json"),
+            "answer_id": result.answer_id,
+            "latency_ms": result.latency_ms,
+        })
+        st.rerun()
+
+with evaluation_tab:
+    st.markdown("#### Comparative evaluation")
+    st.caption("Populated by step 8.4 from `data/generated/eval_runs.jsonl`.")
+    try:
+        from company_assistant.evaluation.report import load as load_runs
+        from company_assistant.evaluation.report import variant_summary
+        rows = load_runs()
+        if not rows:
+            st.info("No evaluation runs recorded yet.", icon="📄")
         else:
-            result = service.ask(question, employee, conversation_id=f"ui-{employee_key}")
-        render_answer(result.answer, answer_id=result.answer_id, latency_ms=result.latency_ms)
+            st.dataframe(variant_summary(rows), width="stretch", hide_index=True)
+            st.caption(
+                f"{len(rows)} run(s) recorded. Blockers are not rate-based: one occurrence "
+                "fires, whatever the pass rate."
+            )
+    except Exception as exc:  # noqa: BLE001 - the page must not take the app down
+        st.warning(f"Evaluation results unavailable: {exc}", icon="⚠️")
 
-    st.session_state.messages.append({
-        "role": "assistant",
-        "answer": result.answer.model_dump(mode="json"),
-        "answer_id": result.answer_id,
-        "latency_ms": result.latency_ms,
-    })
-    st.rerun()
+with about_tab:
+    st.markdown("#### What is real, and what is not")
+    st.markdown(
+        """
+**Real, and enforced**
 
-render_pending_actions(employee)
+- Permission filtering runs **before** retrieval, as a metadata pre-filter on the vector
+  query. A record outside your role never becomes a candidate — the trace shows the
+  candidate set, which is the only evidence that distinguishes *"never visible to you"*
+  from *"ranked low"*.
+- Every factual claim carries a source ID, re-checked against your permissions at
+  citation time rather than trusted from retrieval.
+- Conflicting and superseded evidence is flagged rather than silently resolved. A later
+  date does not by itself override an earlier one.
+- Nothing executes without a separate approval in the panel beside the chat.
+- Retrieved content is treated as **evidence, never instructions** — including one Slack
+  message in the fixtures that tries to instruct the assistant.
+
+**Not real**
+
+- **Identity.** The profile switcher is role simulation. There is no credential,
+  session, or token behind it, so every permission guarantee is conditional on the
+  selected identity being honest.
+- **The company.** Northstar Labs is fictional and all records are teaching fixtures.
+- **The navigation.** Home, Projects, Customers and Policies are inert.
+
+**Known limitations**
+
+- Permissions come from fixture metadata, not from the source systems' own access
+  control lists. In production the two could diverge.
+- No encryption at rest, no access control on traces, no retention or deletion
+  guarantees, no rate limiting.
+- Filtering controls what is *retrieved*; it does not control what the model *infers*
+  from evidence it is permitted to see.
+"""
+    )
+    st.caption(
+        "Full detail in `deliverables/THREAT_MODEL.md`, `deliverables/ACCESS_MATRIX.md` "
+        "and `deliverables/EVALUATION_REPORT.md`."
+    )

@@ -209,6 +209,35 @@ def _is_rate_limit(exc: BaseException) -> bool:
     return any(m in f"{type(exc).__name__} {exc}".lower() for m in _RATE_LIMIT_MARKERS)
 
 
+#: The product's own words when it fails at the infrastructure layer. It is a
+#: machine-readable instruction, and the harness should obey it rather than
+#: score past it.
+_NO_CONCLUSION_MARKER = "no conclusion should be drawn"
+
+
+def infrastructure_result(result: AskResult) -> tuple[bool, str]:
+    """True when a returned answer is an infrastructure failure, not a behaviour.
+
+    Generalises the rate-limit check. F-27 was fixed too narrowly: only 429s were
+    recognised, so an `APIStatusError` still got scored as a behavioural failure -
+    EVAL-010 was recorded as a `Partial` on three runs that never reached a tool
+    call. The product itself says *"No conclusion should be drawn from this
+    failure"*, which is exactly the right signal, and a harness that scores past
+    its own system's disclaimer is measuring the provider rather than the product.
+
+    So the rule is now the general one: an `error` status whose text carries that
+    disclaimer is infrastructure, whatever the underlying exception.
+    """
+    if result.answer.status != "error":
+        return False, ""
+    blob = f"{result.answer.text} {' '.join(result.answer.trace)}".lower()
+    if any(m in blob for m in _RATE_LIMIT_MARKERS):
+        return True, "rate limited"
+    if _NO_CONCLUSION_MARKER in blob:
+        return True, result.answer.text.strip()[:120]
+    return False, ""
+
+
 def rate_limited_result(result: AskResult) -> bool:
     """True when an *returned* answer is really a quota event, not a behaviour.
 
@@ -318,7 +347,7 @@ class Harness:
     #: token-heavy because tool output enters the context, so pacing keeps the run
     #: under TPM. Cheaper than repeatedly hitting a 429 and backing off, and it
     #: makes the run finish rather than stall.
-    pace_s: float = 15.0
+    pace_s: float = 45.0
     store: ResultStore = field(init=False)
     _services: dict[str, AssistantService] = field(default_factory=dict, init=False)
 
@@ -345,7 +374,14 @@ class Harness:
                 # A returned rate-limit error is infrastructure, not behaviour. The
                 # product reports the outage honestly (T-07) rather than raising, so
                 # it has to be recognised here or the quota gets scored as a result.
-                if rate_limited_result(result):
+                is_infra, detail = infrastructure_result(result)
+                if is_infra and "rate limited" not in detail:
+                    # A provider error that is not a rate limit: retrying inside the
+                    # same minute rarely helps and spends quota, so record it as
+                    # infrastructure and move on rather than burning three attempts.
+                    meta["infra_failure"] = detail
+                    return None, meta
+                if is_infra:
                     if attempt < self.max_retries:
                         wait = self.base_backoff_s * (2 ** (attempt - 1))
                         meta["rate_limit_waits"] += 1
