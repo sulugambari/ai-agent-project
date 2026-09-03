@@ -11,27 +11,34 @@ reconstructed from memory on the last day.
 - **Companion:** `SHOWCASE.md` holds the *live demonstration* script; this file
   holds the *slides*. They overlap deliberately at the demo section.
 
+> **Step 10.4 is complete.** The assembled deck is
+> [`FINAL_DECK.md`](FINAL_DECK.md) — 17 slides with speaker notes, built from the
+> ledger below and the 24 tracked figures. This file remains the *ledger*: what each
+> step found and which figure proves it. `SHOWCASE.md` is the live demonstration
+> script, and slides 5, 12 and 13 are the ones to replace with the live product if
+> time is short.
+
 ## Deck Structure
 
 | # | Slide | Content source | Status |
 | --- | --- | --- | --- |
-| 1 | Title — product name, team, date | — | Pending |
-| 2 | The problem: one question, four sources | Acme Freight scenario, `PROJECT_PLAN.md` | Pending |
-| 3 | Northstar Labs and its data landscape | Step 1.1 corpus + access figures | Figures ready |
-| 4 | Who we built for, and what we refuse | `PRODUCT_BRIEF.md`, Step 1.2-1.3 | Figure ready |
-| 5 | The information boundary | `ACCESS_MATRIX.md`, Steps 2.1-2.2, **3.2 counterfactual** | **Ready** |
-| 6 | Architecture, and the alternatives we rejected | Step 2.3, `D-001`, **`D-002` + threat-model figure** | Figure ready |
-| 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | **Ready** |
-| 8 | Connecting a live source safely | Step 4.3 figures | **Ready** |
-| 9 | Retrieval: lexical vs semantic vs hybrid | Step 5.5 figures | Pending |
-| 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 · **design + figure ready from 2.2** | Figure ready |
-| 11 | Five narrow tools, one bounded agent | Step 6.1-6.2 figures | Pending |
-| 12 | Trust boundary: refusal, conflict, injection | Step 6.5, EVAL-005/006 · **threat model 2.3** | Partly sourced |
-| 13 | Human approval before any action | Step 6.4 state diagram | Pending |
-| 14 | Evaluation results by layer | Step 8.4 figures | Pending |
-| 15 | What failed, and what we learned | Step 8.5 failure analysis | Pending |
-| 16 | Release recommendation | Step 10.2, `DECISIONS.md` | Pending |
-| 17 | What real deployment would still require | `SHOWCASE.md` launch boundary | Pending |
+| 1 | Title — product name, team, date | — | **In deck** |
+| 2 | The problem: one question, four sources | Acme Freight scenario, `PROJECT_PLAN.md` | **In deck** |
+| 3 | Northstar Labs and its data landscape | Step 1.1 corpus + access figures | **In deck** |
+| 4 | Who we built for, and what we refuse | `PRODUCT_BRIEF.md`, Step 1.2-1.3 | **In deck** |
+| 5 | The information boundary | `ACCESS_MATRIX.md`, Steps 2.1-2.2, **3.2 counterfactual** | **In deck** |
+| 6 | Architecture, and the alternatives we rejected | Step 2.3, `D-001`, **`D-002` + threat-model figure** | **In deck** |
+| 7 | Baseline: what transparent lexical search cannot do | Step 3.3 figures | **In deck** |
+| 8 | Connecting a live source safely | Step 4.3 figures | **In deck** |
+| 9 | Retrieval: lexical vs semantic vs hybrid | Step 5.5 figures | **In deck** |
+| 10 | Index lifecycle: change and deletion | Step 5.4, EVAL-011 · **design + figure ready from 2.2** | **In deck** |
+| 11 | Five narrow tools, one bounded agent | Step 6.1-6.2 figures | **In deck** |
+| 12 | Trust boundary: refusal, conflict, injection | Step 6.5, EVAL-005/006 · **threat model 2.3** | **In deck** |
+| 13 | Human approval before any action | Step 6.4 state diagram | **In deck** |
+| 14 | Evaluation results by layer | Step 8.4 figures | **In deck** |
+| 15 | What failed, and what we learned | Step 8.5 failure analysis | **In deck** |
+| 16 | Release recommendation | Step 10.2, `DECISIONS.md` | **In deck** |
+| 17 | What real deployment would still require | `SHOWCASE.md` launch boundary | **In deck** |
 
 ## Step Ledger
 

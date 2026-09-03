@@ -29,19 +29,35 @@ GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
 #: turn here is roughly 6,100 tokens because the system prompt, five tool schemas
 #: and the tool output all travel in context. Probed small, several models
 #: answered; given the real workload the same models returned
-#: `PaymentRequiredResponseError` (402) or `NotFoundResponseError`.
+#: `PaymentRequiredResponseError` (402) or `NotFoundResponseError` (F-30).
 #:
-#: So `:free` in the model id, and `tools` in `supported_parameters`, and a
-#: successful small probe are all necessary and none of them are sufficient. Same
-#: lesson as F-23: verify at the moment and size you actually need, never infer.
+#: So `:free` in the model id, `tools` in `supported_parameters`, and a successful
+#: small probe are all necessary and none of them are sufficient. Verify at the
+#: moment and the size you actually need, never infer.
 #:
-#: Selected on the case that DISCRIMINATES, not on the flagship question. Several
-#: models answer P1 well; only this one also REFUSES a request for a restricted
-#: document once the prompt instructs it to (F-32). nemotron-3.5-lightning answers
-#: P1 3/3 and still will not refuse, so answering ability and instruction
-#: compliance on a safety rule are separate properties. Alternatives that also passed the small probe but failed the real
-#: turn are listed in `scripts/probe_openrouter_models.py`.
-OPENROUTER_DEFAULT_MODEL = "poolside/laguna-xs-2.1:free"
+#: **Why this is nemotron and not laguna.** F-32 selected `poolside/laguna-xs-2.1`
+#: on the case that discriminated: asked for a restricted record, nemotron ANSWERED
+#: at length while laguna refused. That reasoning was correct for the design at the
+#: time, and **D-010 removed the premise.** The permission refusal no longer comes
+#: from the model at all - a categorical `Deny` in the access matrix is enforced by
+#: the tool before any search runs, and `forbidden` is derived from that tool
+#: outcome rather than from prose. A model's disposition to refuse is therefore no
+#: longer load-bearing, which is the whole point of moving a control from
+#: behavioural to structural. Nemotron already answered the flagship question 3/3
+#: (F-32), and the team selected it on cost.
+#:
+#: **UNVERIFIED at the time of writing.** `OPENROUTER_API_KEY` returns 401, so the
+#: claim above - that the boundary holds on a model that would not have refused on
+#: its own - has not been measured on this model since D-010 landed. It is a
+#: prediction about the design, and predictions in this project have been wrong
+#: before. Close it with one command as soon as a working key exists:
+#:
+#:     uv run python scripts/verify_behaviours.py
+#:
+#: If the permission case fails there, the structural control is not doing what
+#: D-010 claims and that is a finding about the DESIGN, not a reason to quietly
+#: switch models back.
+OPENROUTER_DEFAULT_MODEL = "nvidia/nemotron-3.5-lightning:free"
 
 #: Deterministic sampling, so run-to-run variation is the model's own and not
 #: ours. F-17 showed this is necessary but not sufficient: the agent still varied

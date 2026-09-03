@@ -421,6 +421,89 @@ Record meaningful product and architecture decisions, not every small edit.
     searching.
 - **Status:** Accepted
 
+### D-011 · Default model is `nvidia/nemotron-3.5-lightning:free`, on cost, and the refusal control is no longer model-dependent
+
+- **Phase:** 10
+- **Context:** the team was being charged on `poolside/laguna-xs-2.1:free` and asked to
+  move to a model with no cost. That is a legitimate operational reason, and it collides
+  with **D-007/F-32**, which selected laguna *specifically because* nemotron would not
+  refuse a request for a restricted record — it answered it with 3,775 characters.
+- **Why the collision is no longer real.** F-32's reasoning was correct for the design at
+  the time and **D-010 removed its premise.** The permission refusal is no longer produced
+  by the model: a categorical `Deny` in `ACCESS_MATRIX.md` is enforced by the tool
+  **before any search runs**, and `forbidden` is derived from that tool outcome rather than
+  from the model's prose. A model's disposition to refuse is therefore no longer
+  load-bearing — which is the entire point of moving a control from behavioural to
+  structural. Nemotron already answered the flagship question 3 of 3 under F-32, so the
+  ability half was never in question.
+- **Options considered:**
+  1. **`nvidia/nemotron-3.5-lightning:free`** — *selected.* No cost, tool calling verified
+     on the real workload (F-30 — it was the **only** model of five that survived a
+     ~6,100-token turn), flagship question 3/3.
+  2. **Stay on `laguna-xs-2.1:free`** — *rejected on cost*, which is the team's call to
+     make. Retained as a comparison arm; nothing is removed.
+  3. **Return to Groq `gpt-oss-20b`** — *rejected.* Its 8,000 tokens-per-minute ceiling is
+     what stopped Phase 8 at 6 of 15 cases (F-27), and EVAL-010 never completed a single
+     run on it (F-38).
+- **Decision and owner:** nemotron, set in `.env` and as the code default. Owner: Sulu.
+- **⚠ Recorded as UNVERIFIED, deliberately.** `OPENROUTER_API_KEY` returns **401** at the
+  time of writing, so no model-backed run has been possible since the switch. The claim
+  that the boundary holds on a model that would not have refused on its own is a
+  **prediction about the design, not a measurement** — and predictions in this project
+  have been wrong before (F-14, F-17, F-26, F-31 were all conclusions reversed by data).
+  Close it with one command once a working key exists:
+
+  ```bash
+  uv run python scripts/verify_behaviours.py
+  ```
+
+- **What a failure there would mean.** If the permission case fails on nemotron, the
+  structural control is **not** doing what D-010 claims, and that is a finding about the
+  *design* — not a reason to quietly switch models back. Switching back would hide a
+  defect in the control the whole access argument now rests on.
+- **Consequences or follow-up:**
+  - Groq is still retained and `LLM_PROVIDER` still switches providers, so `05`'s provider
+    comparison stays runnable.
+  - Every scored evaluation row predates this switch **and** three system changes (F-32's
+    prompt fix, D-010, the abstention-classifier work). They are not to be pooled with any
+    re-run.
+- **Status:** Accepted, pending verification
+
+### D-012 · Release recommendation — demonstrate with explicit limitations
+
+- **Phase:** 10 (step 10.2)
+- **Context:** `05-evaluation-and-release.md` requires one of three recommendations, and
+  requires that it follow the evidence rather than the quality of the demonstration.
+- **Decision and owner:** **Demonstrate with explicit limitations.** Owner: Sulu.
+- **The evidence for demonstrating:**
+  - **All five release blockers at 0** across 53 scored runs — counted, not averaged, since
+    one occurrence blocks whatever the average.
+  - **The permission boundary holds in both directions**, which is the strongest claim the
+    project can make and is evidenced by the *candidate set* rather than by a refusal:
+    Engineering refused 3/3 with `DOC-HR-001` absent from its 10-record candidate set,
+    People Operations answered 3/3 citing it from a 2-record set.
+  - **The approval boundary is proven end to end** (F-38): 3/3 agent-composed proposals
+    left pending, and 11/11 gate checks with **one execution** across the whole run.
+  - **Injection's structural control held on every scored run.**
+  - **The packaged product starts from a clean checkout**, 16/16 checks from destroyed
+    volumes.
+- **The evidence against an unqualified "demonstrate":**
+  - **The three-variant comparison `05` requires is incomplete.** `semantic_agent` has zero
+    scored runs; `hybrid_agent` covers 6 of 15 cases.
+  - **The scored rows predate three system changes**, so they describe a superseded system.
+  - **Feedback is below its own threshold** — 4 entries against 5, none traced to a decision.
+  - **F-35:** `projects` and `customers` are unreachable, so `P-ORBIT` cannot be shown and
+    two claims in `PRODUCT_BRIEF.md` are false until corrected.
+  - **F-17:** the agent is not deterministic, so every number is a rate.
+- **Why not the other two.** *Demonstrate* unqualified would present an incomplete variant
+  comparison and superseded rows as though they backed the product as it stands. *Do not
+  demonstrate yet* is not supported: nothing measured suggests the product is unsafe to
+  show, no blocker has fired across 53 scored runs, and every behaviour in the seven-beat
+  script is verified and repeated.
+- **How the limitations are presented:** inside beat 7 of `SHOWCASE.md`, in the same breath
+  as the recommendation. A limitation read after the recommendation is not a limitation.
+- **Status:** Accepted
+
 ## Decision Template
 
 ### Decision: Short descriptive title

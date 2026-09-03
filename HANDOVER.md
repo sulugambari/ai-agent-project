@@ -1,16 +1,15 @@
 # HANDOVER — Northstar Release Coordinator
 
-**For the team.** Everything needed to continue into **Phase 10** without
-reverse-engineering decisions already taken. Read sections 1–3 (about 10 minutes), then
-jump to §8.
+**For the team, and for whoever reads this repository next.** All eleven phases are
+complete. Read sections 1–3 (about 10 minutes); §8 is now what remains rather than a
+phase brief.
 
 *(Written by Sulu for Karthik at the Phase 5 boundary, turned around by Karthik at the
 Phase 7 boundary, and again for Phase 9. Now Phases 0–9 are complete and **Phase 10 is
 joint**. The earlier phase briefs it carried are in the git history.)*
 
-- **Last updated:** 3 September 2026, after **Phase 9 closed**
-- **State:** Phases 0–9 complete · **Phase 10 open** · 55 commits, all on `main`, pushed.
-  Board: 10 of 11 Done, Phase 10 In Progress
+- **Last updated:** 3 September 2026, after **Phase 10 closed — the project is complete**
+- **State:** **Phases 0–10 complete**, board fully closed · 58 commits, all on `main`, pushed
 - **Retrieval default:** hybrid, `lexical_weight = 0.6` (D-006). **F-15.1 is fixed at
   source** — the rag default and the tool constant now both read 0.6 and are asserted equal
 - **Release blockers: all five at 0** across 53 scored runs
@@ -18,12 +17,17 @@ joint**. The earlier phase briefs it carried are in the git history.)*
   scored runs and `hybrid_agent` covers **6 of 15** cases, stopped by a free-tier
   token-per-minute limit (F-27). The three-variant comparison `05` requires is therefore
   not complete — treat that as the largest caveat on any conclusion
-- **Model:** `poolside/laguna-xs-2.1:free` **via OpenRouter** (`LLM_PROVIDER=openrouter`).
-  Groq is retained, not replaced, so the provider comparison `05` asks for stays runnable.
-  **D-007 remains unsettled** on Groq's own models, and the report claims no comparison
+- **Model:** `nvidia/nemotron-3.5-lightning:free` **via OpenRouter** (D-011, switched on
+  cost). Groq is retained, not replaced, so `05`'s provider comparison stays runnable.
+  ⚠️ **UNVERIFIED** — `OPENROUTER_API_KEY` returns **401**, so nothing model-backed has run
+  since the switch. One command closes it: `uv run python scripts/verify_behaviours.py`
+- **Release recommendation: demonstrate with explicit limitations** (D-012)
 - **The permission refusal is now structural, and F-34's evidence was void** — it was
   produced by refusals that made **zero tool calls**. See **F-36** and **D-010**; this is
   the most important change since Phase 8
+- **The approval boundary is proven end to end** (F-38). EVAL-010, the case Phase 8 could
+  never score, passes 3/3 on OpenRouter; the gate passes 11/11 with **one execution** across
+  the whole run
 - **Packaged:** `docker compose up --build` → 127.0.0.1:8501 and :8000. Verified 16/16
   from destroyed volumes by `scripts/verify_container.py`. The image is **3.24 GB**, of
   which 2.7 GB is CUDA that never runs — see §8
@@ -101,7 +105,7 @@ cp .env.example .env
 | 7 · Product experience | Together | ✅ Done — plus restyled as the Northstar intranet portal, with the role-simulation disclaimer |
 | 8 · Comparative evaluation | Sulu | ✅ Done — 0 blockers across 53 scored runs; coverage gap stated |
 | 9 · Package the product | Karthik | ✅ Done — one image, three services; 16/16 clean-checkout checks |
-| **10 · Decide and demonstrate** | **Together** | **← you start here.** See §8 |
+| 10 · Decide and demonstrate | Together | ✅ Done — showcase, release decision (D-012), deck |
 
 Phases 3 and 4 ran in parallel. From Phase 5 onward the team works **sequentially**
 (D-005): one active phase, handed over at each boundary.
@@ -1057,7 +1061,7 @@ points collapse into a rolling handover.
 | 7 · Product experience | Together | ✅ Done, Karthik driving with Sulu observing. `service.py` is the single application layer; both interfaces call it and nothing else |
 | 8 · Evaluation | **Sulu** | ✅ **Handover complete — start now.** See §8 |
 | 9 · Packaging | Karthik | ✅ **Done.** 16/16 clean-checkout checks; evidence is in `EVALUATION_REPORT.md` |
-| **10 · Decide + demo** | **Together** | **Active.** See §8 |
+| 10 · Decide + demo | Together | ✅ **Done.** D-012: demonstrate with explicit limitations |
 
 **Why sequential:** no concurrent edits to shared files, no risk of two coding-agent
 sessions rewriting the same notebook, one reviewable line of history, and every phase
@@ -1097,77 +1101,59 @@ produces merge conflicts that are painful to resolve.** You have your own:
 - **Sulu's:** `notebooks/northstar_build.ipynb` — please do not edit
 - Step 10.3 splices them for the final documentation
 
-## 8 · Phase 10 brief — decide and demonstrate
+## 8 · What remains
 
-Board issue: [#11](https://github.com/sulugambari/ai-agent-project/issues/11).
-Course text: `05-evaluation-and-release.md` Phase 10.
-*(The Phase 8 and Phase 9 briefs are in the git history.)*
+All eleven phases are complete and every deliverable is filled in. What follows is not a
+phase brief — it is the honest list of what a next person would still do, in the order the
+evidence justifies.
 
-### Steps
-- **10.1** `SHOWCASE.md` + the seven-beat demonstration script — **still the blank
-  template**, and the largest single gap
-- **10.2** Final `DECISIONS.md` release entry: demonstrate / demonstrate with explicit
-  limitations / do not demonstrate yet
-- **10.3** Final review: correctness, security, privacy scrub, notebook tidy, board closeout
-- **10.4** Assemble the deck from the `SLIDE_DECK.md` ledger and the tracked figures
+### 1 · Verify the model switch — one command, and it is the only open *correctness* item
 
-### What Phase 9 delivered, and its one known limitation
+`OPENROUTER_API_KEY` returns **401**, so nothing model-backed has run since D-011 switched
+the default to `nemotron-3.5-lightning`. Paste a working key into `.env` and run:
 
-`docker compose up --build` → <http://127.0.0.1:8501> and <http://127.0.0.1:8000/docs>.
-One image, three services: `index` builds both namespaces once and exits, `api` and `app`
-gate on it succeeding. `scripts/verify_container.py` reproduces the evidence — **16/16
-from destroyed volumes**, both interfaces reachable **24 s** after `up`, and the
-`project_board` namespace fetched **live from inside the container**.
+```bash
+uv run python scripts/verify_behaviours.py
+```
 
-`scripts/build_index.py` is new and closed a real gap: `data/index/` is git-ignored, so a
-clean checkout had no index and the only way to build one was executing a notebook cell.
-That is not a documented command, and it made this phase's completion evidence
-unreachable.
+Seven behaviours, three runs each. **What it is really testing is a claim about the
+design**, not about the model: F-32 rejected nemotron because it would not refuse a
+restricted record, and D-010 moved that refusal out of the model entirely. If the
+permission case passes, the structural control did its job and the model dependency is
+gone. **If it fails, that is a finding about D-010 — not a reason to switch models back.**
+Switching back would hide a defect in the control the whole access argument now rests on.
 
-**The image is 3.24 GB as Docker reports it, and 5.7 GB of virtual environment once
-unpacked — 2.7 GB of which is `site-packages/nvidia`.** `sentence-transformers` pulls
-`torch`, which on Linux drags in the whole NVIDIA CUDA stack for a CPU-only MiniLM: those
-2.7 GB are never executed. *(A first reading of 9.57 GB was wrong — `docker images` was
-summing a multi-platform manifest list including build attestations. `docker image
-inspect` is the figure to trust.)*
-The fix is pinning the CPU-only torch index in `pyproject.toml`, which **regenerates
-`uv.lock`** — the environment every evaluation ran against. Left as a human-team decision
-rather than taken unilaterally. Either fix it and note the re-lock, or report the size as
-a limitation; do not present it as a considered choice.
+### 2 · Complete the variant comparison
 
-### The three things Phase 10 has to be honest about
+The largest caveat on any conclusion in the report. In priority order, because a missing
+*variant* costs more than missing cases:
 
-1. **The evaluation is incomplete and the report says so.** `semantic_agent` has no
-   scored runs; `hybrid_agent` covers 6 of 15 cases. The three-variant comparison `05`
-   requires is **not** complete.
-2. **The Phase 8 rows predate three system changes** — the F-32 prompt fix, D-010, and
-   the F-31/stray-refusal classifier work. Any re-run is a different system and the rows
-   must not be pooled, the same discipline as the F-26 pre/post split.
-3. **Do not present the pass counts.** The baseline shows more passes than the agent
-   through coverage alone, and all 15 of its statuses are `evidence_found` — a non-answer
-   the scorer accepts. The like-for-like comparison on the 5 cases scored in both is
-   **hybrid 2, baseline 1, tied 2**.
+1. `uv run python scripts/run_eval.py semantic_agent --tier=A` — 18 turns, the missing variant
+2. The 9 Tier B `hybrid_agent` cases — 9 turns
+3. Re-run Tier A on the current system
 
-### If quota allows, in priority order
+**These rows must not be pooled with the existing ones.** Everything scored predates three
+system changes — the F-32 prompt fix, D-010, and the abstention-classifier work — so a
+re-run measures a different system. Same discipline as the F-26 pre/post split.
 
-1. **`semantic_agent` on Tier A** — 18 turns. The missing *variant* costs the report more
-   than the missing cases do. OpenRouter's limits now make it feasible where Groq's did not.
-   `uv run python scripts/run_eval.py semantic_agent --tier=A`
-2. **EVAL-010 end to end.** Every Groq run failed with `APIStatusError` after 100–123 s
-   with **zero** tool calls. Capturing the exception *message* rather than only its class
-   would probably settle it in one run — and a different provider may simply not have the
-   problem.
-3. **The 9 Tier B `hybrid_agent` cases** — 9 turns.
-
-Everything resumes: completed **scored** rows are skipped and infrastructure failures are
-retried.
-
-### Two things worth fixing before the demonstration
+### 3 · The three known product gaps
 
 - **F-35 — one narrow read-only tool over `projects` and `customers`.** Until it exists,
   `PRODUCT_BRIEF.md`'s "P1 spans four source families" and "P-ORBIT is a second instance"
-  are both false and must be corrected rather than repeated.
-- **Feedback is at 4 entries against a threshold of 5**, with no decision traced to it.
+  are **false** and must be corrected rather than repeated.
+- **Feedback is 4 entries against a threshold of 5**, with no product decision traced to it.
+- **The image carries 2.7 GB of CUDA it never executes.** Pinning the CPU-only torch index
+  regenerates `uv.lock` — the environment every evaluation ran against — so it is a
+  deliberate decision, not a cleanup.
+
+### 4 · Housekeeping
+
+- **Rotate the OpenRouter key** if it has not already lapsed on its own. One was pasted
+  into a chat transcript; `scripts/redact.py` now gates every transcript write and 149
+  tracked files scan clean, but redaction protects the *repository*, never the conversation.
+- **`scripts/refresh_transcript.py` rewrites both transcript files from the most recently
+  modified session log.** Running it now would replace the Phases 0–5 record with whatever
+  session is current. Decide what the transcript is meant to hold first.
 
 ## 9 · Working conventions
 
@@ -1270,24 +1256,42 @@ F-25's missing mode selection, and F-26's refusal-detection defect.
 
 ## 13 · The single most important thing
 
-**The boundary holds. The reasoning layer is better than it was and still imperfect. The
-evidence for both is incomplete, and the report says so.**
+**The boundary holds, and it holds structurally. The reasoning layer is better than it was
+and still imperfect. The evidence for both is incomplete, and the report says so.**
 
 All five release blockers are **0** across 53 scored runs, and the permission boundary has
-survived five independent regression checks plus a re-permissioning test no supplied case
-covers. That is the strongest claim this project can make, and it is well supported.
+survived five independent regression checks, a re-permissioning test no supplied case
+covers, and — since Phase 8 — a defect that had it failing in the direction nobody was
+watching. That last one is the thing worth carrying out of this project.
 
-The reasoning layer improved where Phase 3 said it had to: the agent refuses and abstains
-where the baseline could not, and it reaches for `compare_sources` on the conflicting
-policies rather than answering from the first plausible record. But P1 cites the document
-defining its own answer in only 1 of 3 runs, and EVAL-010 never completed a single agent
-run.
+**The boundary was failing in both directions and only one was instrumented.** The agent
+refused a record to the one role cleared for it, because the record's own text said it was
+confidential — obeying retrieved content exactly as an injection would, except that instead
+of leaking a record it denied one. And the refusal it *did* give the denied role was
+produced with **zero tool calls**, from the question's wording, identical for both
+employees. It looked correct. It was grounded in nothing, and it was passing the evaluation
+3 of 3.
+
+Both are now structural: a categorical `Deny` is enforced from the access matrix before any
+search runs, and a turn that declines without searching cannot be reported as a refusal at
+all. The approval boundary is likewise proven end to end rather than only structurally —
+**one execution across the whole verification run**, for the single authorised approval.
 
 **What would be easy and wrong is to present the pass counts.** The baseline shows more
 passes than the agent through coverage alone, and every one of its statuses is
-`evidence_found` — a non-answer my own scorer accepts. The honest comparison is the five
+`evidence_found` — a non-answer our own scorer accepts. The honest comparison is the five
 cases scored in both variants: **hybrid 2, baseline 1, tied 2.**
 
-Three of the defects found this project were in the *measurement*, not the product — and
-two of those were mine. An evaluation that hides its own defects cannot be trusted about
-the product's. Please keep it that way.
+**Four of the defects found in this project were in the *measurement*, not the product**,
+and three of those were ours. They are all still in the report. An evaluation that hides
+its own defects cannot be trusted about the product's.
+
+And the pattern that produced most of them, stated once so it survives: **anything that
+reads meaning out of generated prose will eventually be wrong about it.** Normalising the
+punctuation was necessary and not sufficient; position and grounding helped; and the last
+one could not be fixed by reading better at all, because the model had no more information
+than the classifier did. That control had to move above the model. **When a judgement
+cannot be derived from what the system actually knows, do not parse harder — move the
+decision to where the knowledge is.**
+
+Please keep it that way.
