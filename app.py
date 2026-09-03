@@ -412,19 +412,111 @@ with assistant_tab:
 
 with evaluation_tab:
     st.markdown("#### Comparative evaluation")
-    st.caption("Populated by step 8.4 from `data/generated/eval_runs.jsonl`.")
     try:
-        from company_assistant.evaluation.report import load as load_runs
-        from company_assistant.evaluation.report import variant_summary
+        from company_assistant.evaluation.charts import (
+            latency_strip, layer_rates, verdict_matrix,
+        )
+        from company_assistant.evaluation.report import (
+            injection_results, load as load_runs, variant_summary, verdicts,
+        )
+
         rows = load_runs()
         if not rows:
-            st.info("No evaluation runs recorded yet.", icon="📄")
+            st.info("No evaluation runs recorded yet. Run `scripts/run_eval.py`.", icon="📄")
         else:
+            case_verdicts = verdicts(rows)
+            scored = [r for r in rows if r.get("scored")]
+
+            # Release blockers are the headline, and they are a COUNT rather than a
+            # chart on purpose: one occurrence blocks, whatever the pass rate, so an
+            # average would be the wrong shape for the question being asked.
+            blockers = {
+                "Forbidden in citations": sum(len(r.get("forbidden_in_citations") or []) for r in scored),
+                "Forbidden in trace": sum(len(r.get("forbidden_in_trace") or []) for r in scored),
+                "Unresolvable citations": sum(len(r.get("unresolvable_citations") or []) for r in scored),
+                "Unpermitted citations": sum(len(r.get("unpermitted_citations") or []) for r in scored),
+                "Unapproved executions": sum(1 for r in scored if r.get("proposal_status") in {"executed", "approved"}),
+            }
+            fired = sum(blockers.values())
+            if fired:
+                st.error(f"**{fired} release blocker event(s).** Any one of these blocks the "
+                         "release regardless of the overall pass rate.", icon="🛑")
+            else:
+                st.success(f"**No release blocker fired** across {len(scored)} scored run(s). "
+                           "Counted, not averaged: one occurrence would block.", icon="✅")
+            cols = st.columns(len(blockers))
+            for col, (name, count) in zip(cols, blockers.items()):
+                col.metric(name, count, help="Threshold is 0. Not rate-based.")
+
+            st.caption(
+                "**Coverage first.** `semantic_agent` has no scored runs and `hybrid_agent` "
+                "covers 6 of 15 cases — a free-tier token-per-minute limit stopped the run, "
+                "so the three-variant comparison is **incomplete**. The baseline's larger raw "
+                "pass count is a coverage artifact, and every one of its statuses is "
+                "`evidence_found` — a non-answer the scorer accepts. Read the like-for-like "
+                "comparison below, not the totals."
+            )
+
+            st.divider()
+            left, right = st.columns([0.55, 0.45], gap="large")
+            with left:
+                st.altair_chart(verdict_matrix(case_verdicts))
+            with right:
+                st.altair_chart(layer_rates(case_verdicts))
+                st.altair_chart(latency_strip(rows))
+
+            st.divider()
+            st.markdown("##### Like-for-like: cases scored in both variants")
+            by = {}
+            for v in case_verdicts:
+                by.setdefault(v.variant, {})[v.case_id] = v
+            base, hyb = by.get("lexical_baseline", {}), by.get("hybrid_agent", {})
+            rank = {"Pass": 2, "Partial": 1, "Fail": 0, "Not scored": -1}
+            comparison = [
+                {"case": c, "baseline": base[c].verdict, "hybrid + agent": hyb[c].verdict,
+                 "better": ("hybrid" if rank[hyb[c].verdict] > rank[base[c].verdict]
+                            else "baseline" if rank[base[c].verdict] > rank[hyb[c].verdict] else "tie")}
+                for c in sorted(base)
+                if c in hyb and base[c].scored_runs and hyb[c].scored_runs
+            ]
+            if comparison:
+                st.dataframe(comparison, width="stretch", hide_index=True)
+                wins = sum(1 for r in comparison if r["better"] == "hybrid")
+                losses = sum(1 for r in comparison if r["better"] == "baseline")
+                st.caption(
+                    f"On the {len(comparison)} cases scored in both: **hybrid {wins}, "
+                    f"baseline {losses}, tied {len(comparison) - wins - losses}**. The agent's "
+                    "wins are the refusal and abstention cases the baseline structurally cannot do."
+                )
+
+            inj = injection_results(rows)
+            if inj.get("runs"):
+                st.markdown("##### Injection resistance — two results, not one")
+                a, b = st.columns(2)
+                a.metric("Structural control held",
+                         f"{inj['structural_held']} of {inj['runs']}",
+                         help="Payload not obeyed, restricted record untouched. A release blocker.")
+                b.metric("Attack reported to the employee", "behavioural",
+                         help="Reported as a rate with no threshold — it was a coin flip in Phase 6.")
+                st.caption(inj["note"])
+
+            st.divider()
+            st.markdown("##### Per-variant totals")
             st.dataframe(variant_summary(rows), width="stretch", hide_index=True)
             st.caption(
-                f"{len(rows)} run(s) recorded. Blockers are not rate-based: one occurrence "
-                "fires, whatever the pass rate."
+                "Rate-limit waits are reported here and excluded from latency: a 429 measures "
+                "our Groq tier, not the assistant."
             )
+
+            counts = service.feedback_summary()
+            st.markdown("##### Feedback")
+            f1, f2, f3 = st.columns(3)
+            f1.metric("Useful", counts["up"])
+            f2.metric("Not useful", counts["down"])
+            f3.metric("Total", counts["total"],
+                      help="Threshold: at least 5 entries and one decision traced to feedback.")
+            if counts["total"] < 5:
+                st.caption("⚠️ Below the threshold set in `PRODUCT_BRIEF.md`.")
     except Exception as exc:  # noqa: BLE001 - the page must not take the app down
         st.warning(f"Evaluation results unavailable: {exc}", icon="⚠️")
 
