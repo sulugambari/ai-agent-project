@@ -25,13 +25,21 @@ from company_assistant.evaluation.harness import (  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
-    variants = tuple(argv[1:]) or ("hybrid_agent",)
+    # --tier A limits the run to the repeated cases. On a token-per-minute tier,
+    # 18 turns that give a like-for-like three-variant comparison on the six cases
+    # chosen as most important beat 27 turns spread thin across all fifteen.
+    args = [a for a in argv[1:] if not a.startswith("--")]
+    tier = next((a.split("=", 1)[1] for a in argv[1:] if a.startswith("--tier=")), None)
+    variants = tuple(args) or ("hybrid_agent",)
     unknown = [v for v in variants if v not in VARIANTS]
     if unknown:
         print(f"unknown variant(s): {unknown}; choose from {VARIANTS}")
         return 1
 
     cases = load_cases()
+    if tier:
+        cases = [c for c in cases if tier_of(c.case_id) == tier.upper()]
+        print(f"tier filter: {tier.upper()} -> {len(cases)} case(s)")
     harness = Harness()
     done = harness.store.completed()
     planned = sum(repeats_for(c.case_id, v) for v in variants for c in cases)
