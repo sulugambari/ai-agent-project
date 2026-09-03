@@ -427,8 +427,21 @@ def _reads_as_abstention(text: str, *, citation_count: int = 0) -> bool:
         return False
 
     first = min(positions)
-    # A refusal in the opening is the answer, not a caveat within one.
-    if first <= max(_OPENING_CHARS, _OPENING_FRACTION * len(text)):
+    # A refusal in the opening is the answer, not a caveat within one - unless the
+    # turn went on to give a substantial, well-grounded answer anyway. Observed
+    # through the container: a correct four-condition P1 answer citing three
+    # sources opened with a stray "I am not permitted to share that record" and
+    # was downgraded to `insufficient_evidence`. F-31 measured genuine abstentions
+    # at 333-525 chars with 0-1 citations, so requiring BOTH length and real
+    # grounding to override cannot swallow one of those.
+    #
+    # This loosening is safe in a way it would not have been before D-010. The
+    # dangerous mislabel - a PERMISSION refusal displayed as an answer - is now
+    # decided structurally from a tool denial and never reaches this function. What
+    # is left here is "the company holds no answer", and a turn that cites several
+    # records at length is not that.
+    substantial_and_grounded = len(text) >= _SUBSTANTIAL_CHARS and citation_count >= 2
+    if first <= max(_OPENING_CHARS, _OPENING_FRACTION * len(text)) and not substantial_and_grounded:
         return True
     # Nothing was grounded, so there is no answer for the phrase to qualify.
     if citation_count == 0:
