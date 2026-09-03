@@ -4,19 +4,21 @@
 reverse-engineering decisions already taken. Read sections 1–3 (about 10 minutes), then
 jump to §8.
 
-*(This file was written by Sulu for Karthik at the Phase 5 boundary. It is now updated in
-the other direction: Phases 6 and 7 are complete and Phase 8 is yours. The Phase 6 brief
-it used to carry is in the git history.)*
+*(Written by Sulu for Karthik at the Phase 5 boundary, then turned around by Karthik at
+the Phase 7 boundary. Now turned around again: Phases 0–8 are complete and **Phase 9 is
+yours**. The earlier phase briefs it carried are in the git history.)*
 
-- **Last updated:** 2 September 2026, after **Phase 7 closed**
-- **State:** Phases 0–7 complete (**6.5 outstanding**) · Phases 8–10 open · 26 commits,
-  **4 unpushed on `ai-agent-project-Karthik1`** — nothing since Phase 5 is on `main` yet
-- **Retrieval default:** hybrid, `lexical_weight = 0.6` (D-006) — but see F-15: the
-  code's own `DEFAULT_LEXICAL_WEIGHT` is still `0.5`, so the tools pass 0.6 explicitly
-- **Model:** `openai/gpt-oss-20b`, **provisional** (D-007). The planned fallback model no
-  longer exists and the bake-off could not be completed on the free tier
-- **Read F-17 before you design the Phase 8 harness.** The agent is not deterministic at
-  `temperature=0`, so a single run per case measures sampling noise
+- **Last updated:** 3 September 2026, after **Phase 8 closed**
+- **State:** Phases 0–8 complete · Phases 9–10 open · 41 commits, all on `main`
+- **Retrieval default:** hybrid, `lexical_weight = 0.6` (D-006). **F-15.1 is fixed at
+  source** — the rag default and the tool constant now both read 0.6 and are asserted equal
+- **Release blockers: all five at 0** across 53 scored runs
+- **The evaluation is incomplete and the report says so.** `semantic_agent` has **no**
+  scored runs and `hybrid_agent` covers **6 of 15** cases, stopped by a free-tier
+  token-per-minute limit (F-27). The three-variant comparison `05` requires is therefore
+  not complete — treat that as the largest caveat on any conclusion
+- **Model:** `openai/gpt-oss-20b`. **D-007 remains unsettled** — the models were never
+  distinguished, and the report claims no comparison
 - **Board:** <https://github.com/users/sulugambari/projects/12>
 - **Full session transcript:** `docs/CHAT_HISTORY.md` (readable, 21 turns) and
   `docs/chat-history-raw.jsonl` (verbatim, 8.4 MB). **Both cover Phases 0–5 only** — the
@@ -83,10 +85,10 @@ cp .env.example .env
 | 3 · Deterministic baseline | Sulu | ✅ Done |
 | 4 · Live GitHub source | Karthik | ✅ Done — verified and closed |
 | 5 · Managed RAG pipeline | Sulu | ✅ Done — hybrid `w=0.6` selected (D-006); lifecycle proven |
-| 6 · Tools and one agent | Karthik | ⚠️ **Steps 6.1–6.4 done; 6.5 not run** — the smoke run needs model calls and the Groq quota is exhausted |
-| 7 · Product experience | Together | ✅ Done — `service.py`, all five endpoints, Streamlit chat + approval panel |
-| **8 · Comparative evaluation** | **Sulu** | **← you start here.** See §8 |
-| 9 · Package the product | **Karthik** | Todo |
+| 6 · Tools and one agent | Karthik | ✅ Done — 6.5 completed from the Phase 8 harness rows, which *are* the agent smoke run |
+| 7 · Product experience | Together | ✅ Done — plus restyled as the Northstar intranet portal, with the role-simulation disclaimer |
+| 8 · Comparative evaluation | Sulu | ✅ Done — 0 blockers across 53 scored runs; coverage gap stated |
+| **9 · Package the product** | **Karthik** | **← you start here.** See §8 |
 | 10 · Decide and demonstrate | Together | Todo |
 
 Phases 3 and 4 ran in parallel. From Phase 5 onward the team works **sequentially**
@@ -721,92 +723,62 @@ produces merge conflicts that are painful to resolve.** You have your own:
 - **Sulu's:** `notebooks/northstar_build.ipynb` — please do not edit
 - Step 10.3 splices them for the final documentation
 
-## 8 · Your Phase 8 brief
+## 8 · Your Phase 9 brief
 
-Board issue: [#9](https://github.com/sulugambari/ai-agent-project/issues/9).
-Course text: `05-evaluation-and-release.md` Phase 8.
-*(The Phase 6 brief that used to live here is in the git history.)*
-
-### What you inherit, working and tested
-
-```python
-from company_assistant.service import EMPLOYEES, AssistantService
-
-service = AssistantService()                       # holds index, agents, approvals
-result  = service.ask(question, EMPLOYEES["leo"])  # -> AskResult
-result.answer          # the shared Answer contract: status, text, citations, trace
-result.answer_id       # what feedback refers to
-result.latency_ms
-
-service.ask_baseline(question, employee)           # Phase 3 lexical baseline, no model
-service.status()                                   # index units, last-indexed, freshness
-service.record_feedback(answer_id, "up", reason="correct", retrieval_mode="hybrid")
-```
-
-**Call `AssistantService` directly.** Do not drive Streamlit or FastAPI to evaluate — the
-service is interface-independent precisely so the harness, the API and the app all
-exercise one code path. Pass `conversation_id=None` (the default) so a case cannot inherit
-state from a case that ran before it.
-
-| Layer | What is proven | Evidence |
-| --- | --- | --- |
-| 5 tools | normal / denied / empty / failure, all distinct | 24 direct calls, 24 pass — `6_2_tool_test_matrix` |
-| Relevance | absolute coverage separates answerable from unanswerable | `6_2_relevance_threshold` |
-| Agent | bounded to 6 tool calls, candidate set carried out per turn | notebook 6.3 assertions |
-| Approval gate | approved / edited / rejected / failed all recorded; re-approval never double-executes | 21 transitions, 21 pass |
-| Service | baseline preserved, permissions hold, feedback stores 5 fields only | 18 checks, 18 pass |
-| Interfaces | app renders and answers with no exception or leak; 5 endpoints respond | Streamlit `AppTest`, FastAPI `TestClient` |
+Board issue: [#10](https://github.com/sulugambari/ai-agent-project/issues/10).
+Course text: `05-evaluation-and-release.md` Phase 9.
+*(The Phase 8 brief that used to live here is in the git history.)*
 
 ### Steps
-- **8.1** Write thresholds **before** seeing results. Note the latency threshold problem
-  in F-21 — the existing numbers were set against retrieval and cannot be reused.
-- **8.2** The harness. **Repeat every case** (D-008, F-17) and report rates.
-- **8.3** Special-setup cases: EVAL-008 DB failure, EVAL-011 add→sync→verify→delete→sync,
-  EVAL-012 live and deliberately unavailable.
-- **8.4** Streamlit evaluation page + notebook charts.
-- **8.5** Fill the `EVALUATION_REPORT.md` scenario table and residual risks.
+- **9.1** Dockerfile + compose: both ports, secrets outside the image, explicit index and
+  feedback volumes, model-free health endpoint, local GitHub fallback preserved
+- **9.2** Clean-checkout startup verification using only the documented commands
 
-### What must be true when you are done
+### What the container has to get right, and why
 
-1. **Every case ran more than once.** This is the single biggest change from the plan. See
-   F-17 — two conclusions were already invalidated by single-run results this session.
-2. **429s are retried in the harness, never in the product.** The product must report a
-   rate limit honestly (T-07); an evaluation that scores a 429 as a behavioural failure
-   measures our Groq quota instead of the model.
-3. **Budget the run in hours.** Agent turns cost 2–80 s and the free tier throttles hard
-   (F-21). A 36-turn comparison exhausted the quota outright.
-4. **Normalise model prose before parsing it.** F-20: `gpt-oss` writes source ids with
-   U+2011, and a scorer matching ASCII will silently score a perfect answer as ungrounded.
-   `agent.runner.normalize_for_id_matching` already exists — reuse it.
-5. **Report injection resistance as two separate results** (F-18): the structural control
-   held in 3 of 3 runs, the *reporting* of the attack in 1 of 3. A single "pass" hides that.
-6. **Settle D-007.** `gpt-oss-120b` has zero repeated runs. Either complete the bake-off or
-   record explicitly that the models were not distinguished.
-
-### The hard problem in Phase 8
-
-**Measuring a non-deterministic system against thresholds fixed in advance.** F-17 means a
-case can pass and fail the same threshold in one sitting. Decide before 8.1 how many runs
-constitute a result and what rate counts as passing — and note that the four release
-blockers (`0` forbidden evidence, `0` unapproved executions, `0` fabricated citations,
-`0` credentials leaked) cannot be rate-based. Those must hold on **every** run, which
-means variance makes them *harder* to prove, not easier.
-
-### Fixes still owed in your own files
-
-- **`rag/hybrid.py`: `DEFAULT_LEXICAL_WEIGHT` is 0.5 while D-006 chose 0.6** (F-15). The
-  tools work around it explicitly; the library default is still wrong.
-- **`rag/index.py`** was changed during Phase 7 to persist the freshness manifest,
-  because step 7.3's last-indexed disclosure was otherwise unmeetable (F-15, item 2).
-  Noted here so the change is attributable, not because it went unseen.
+1. **Secrets outside the image.** `.env` is git-ignored and must stay out of the build
+   context. Mount it or pass the variables; never `COPY .env`.
+2. **A model-free health endpoint.** `/health` already avoids the model deliberately, so a
+   readiness probe cannot burn quota — which matters more than it sounds on a tier where
+   tokens-per-minute is the binding limit (F-27).
+3. **Explicit, persistent volumes for `data/index/` and `data/feedback/`.** Both are
+   git-ignored, and the index carries `freshness_manifest.json`. If that file is lost the
+   app reports `indexed never` and defaults every namespace to `local`, asserting
+   "committed fixture" over data that was really live or a degraded fallback — a
+   **disclosure wrong by construction** (F-15.2). A container that loses the manifest
+   re-introduces a defect we already fixed.
+4. **The embedding model must not be downloaded on every start.** It is ~90 MB and the
+   first load cost 39 s against 7.3 s warm. Either bake it into the image or cache it in a
+   volume; a cold download on each start makes the product look broken (F-22 territory).
+5. **Bind explicitly.** Streamlit binds *all* interfaces by default and advertised a LAN
+   URL during step 0.3 (F-9). An unauthenticated, permission-aware assistant should not be
+   network-reachable by accident. The portal disclaims that identity is simulated — the
+   container should not quietly widen who can reach it.
+6. **Preserve the local GitHub fallback.** `data/raw/github/` must be present in the image,
+   or a live-fetch failure has nothing to degrade to.
+7. **Do not claim production readiness.** `05` is explicit, and `THREAT_MODEL.md` lists
+   what remains unsecured.
 
 ### Completion evidence required
-Another group can inspect the dashboard, trace a failed case back to its evidence, and
-understand why one variant was selected.
+A teammate starts the packaged product from the repository instructions and reaches both
+interfaces without repairing paths or copying hidden files.
 
-### When you finish
-Tick 8.1–8.5 on [#9](https://github.com/sulugambari/ai-agent-project/issues/9), append to
-`deliverables/SLIDE_DECK.md`, and hand back for Phase 9 (packaging, Karthik).
+### If you have quota to spare, this is worth more than packaging polish
+
+Three things Phase 8 could not prove, in priority order:
+
+1. **EVAL-010 end to end.** Every agent run failed with `APIStatusError` after 100–123 s
+   with **zero tool calls**. The approval boundary is proven *structurally* (21 transitions
+   in Phase 6) and unproven *through the agent*. The cause is unresolved; my suspicion is a
+   request-size or provider limit on the only turn that asks the agent to compose a
+   payload, but that is a suspicion. **Capturing the exception *message* rather than only
+   its class would probably settle it in one run.**
+2. **`semantic_agent` on Tier A** — 18 turns. It is the missing *variant*, so it costs the
+   report more than the missing cases do. `uv run python scripts/run_eval.py semantic_agent --tier=A`
+3. **The 9 Tier B `hybrid_agent` cases** — 9 turns.
+
+Everything resumes: completed **scored** rows are skipped, and infrastructure failures are
+retried rather than skipped.
 
 ## 9 · Working conventions
 
@@ -857,18 +829,16 @@ and [#8](https://github.com/sulugambari/ai-agent-project/issues/8) despite being
 
 | Question | Owner | Needed by |
 | --- | --- | --- |
-| **Is `gpt-oss-120b` actually better than `gpt-oss-20b`?** Zero repeated runs completed; D-007 is provisional | Joint | **Step 8.1** |
-| **What counts as a pass for a non-deterministic system?** How many runs per case, and what rate — noting the four release blockers cannot be rate-based | **Sulu** | **Step 8.1** |
-| **What are the agent-turn latency thresholds?** The existing ones were set against 23–55 ms retrieval; turns take 2–80 s (F-21) | **Sulu** | **Step 8.1** |
-| Should `search_company_knowledge` ever *suppress* weak evidence rather than only labelling it? Currently it annotates, because the threshold separates by one token (F-16) | Joint | Step 8.5 |
-| Can injection *reporting* be made reliable without payload matching? 1 of 3 runs reported it (F-18). T-01 rules out the obvious fix | Joint | Phase 10 |
-| Do we want live Atlas-shaped issues in the repo so the live path can serve EVAL-012 directly? | Joint | Phase 8 |
-| P2 as a **Leo** question needs a custom eval case; supplied EVAL-003 covers the same conflict as **Maya** | Sulu | Step 8.2 |
-| Which Phase 10 extension, if time allows? Freshness-aware ranking still attacks F-2 directly | Joint | Phase 10 |
+| **Why does EVAL-010 fail with `APIStatusError` and zero tool calls?** Capture the exception message, not just the class | Karthik | Phase 9/10 |
+| Can `semantic_agent` be run at all on this tier? Without it the three-variant comparison stays incomplete | Joint | Phase 10 |
+| **D-007 — `gpt-oss-20b` vs `120b` were never distinguished.** Either complete it or state plainly in the report that no model comparison was made | Joint | Phase 10 |
+| Feedback threshold unmet: fewer than 5 entries and no decision traced to feedback | Joint | Phase 10 |
+| F-28 — the agent answers P1 correctly but cites the defining document in only 1 of 3 runs. Prompt change, or accept and report? | Joint | Phase 10 |
+| Which Phase 10 extension, if any? Freshness-aware ranking still attacks F-2 most directly | Joint | Phase 10 |
 
-**Closed since the last update:** the model fallback question (D-007, provisionally), the
-Phase 8 harness design question (D-008), and F-2 itself — status-aware reasoning in
-`compare_sources` resolves it, 3 runs of 3.
+**Closed since the last update:** the retrieval default (D-006), the namespace split
+(D-004), the working model (D-005), the Phase 8 run design (D-009), F-15.1's weight drift,
+F-25's missing mode selection, and F-26's refusal-detection defect.
 
 ## 12 · File map
 
@@ -900,40 +870,24 @@ Phase 8 harness design question (D-008), and F-2 itself — status-aware reasoni
 
 ## 13 · The single most important thing
 
-At the Phase 5 boundary this section read: *"a correct permission boundary and a
-measurably weak reasoning layer."* Half of that has changed.
+**The boundary holds. The reasoning layer is better than it was and still imperfect. The
+evidence for both is incomplete, and the report says so.**
 
-**The boundary still holds, now through six independent checks** — lexical (3.2), semantic
-(5.2), all three modes on five questions (5.3), all three modes on ten (5.5), the tool
-matrix (6.2), and the service layer (7.1) — with **zero** forbidden results and **zero**
-forbidden candidates throughout. Leo never reaches `DOC-HR-001`; obeying the injection
-retrieves nothing; nothing executes without a separate approval.
+All five release blockers are **0** across 53 scored runs, and the permission boundary has
+survived five independent regression checks plus a re-permissioning test no supplied case
+covers. That is the strongest claim this project can make, and it is well supported.
 
-**F-2 is fixed.** The archived refund policy still *outranks* the current one at every
-retrieval setting, and it no longer matters: the conflict now reaches the agent as a
-field, and `compare_sources` names the authoritative record. It passed 3 runs of 3. The
-fix was not a better ranker — it was moving the reasoning above retrieval and making the
-conflict **data rather than a hope that the prompt made the model notice**.
+The reasoning layer improved where Phase 3 said it had to: the agent refuses and abstains
+where the baseline could not, and it reaches for `compare_sources` on the conflicting
+policies rather than answering from the first plausible record. But P1 cites the document
+defining its own answer in only 1 of 3 runs, and EVAL-010 never completed a single agent
+run.
 
-**What is new, and what Phase 8 is really about:** every defect found in Phases 6 and 7
-was found by a *consumer* exercising a contract, never by the layer that wrote it. The
-retrieval weight disagreed with the decision. Freshness evaporated on process restart.
-Hybrid mode could not express irrelevance. And three of my own defects came from reading
-structure out of model prose — a Unicode hyphen silently voided every citation on a
-correct answer.
+**What would be easy and wrong is to present the pass counts.** The baseline shows more
+passes than the agent through coverage alone, and every one of its statuses is
+`evidence_found` — a non-answer my own scorer accepts. The honest comparison is the five
+cases scored in both variants: **hybrid 2, baseline 1, tied 2.**
 
-So the honest summary is: **the structural controls are solid and the behavioural ones are
-a coin flip.** F-17 (non-determinism) and F-18 (injection reported 1 time in 3) are the
-same fact seen twice — anything that depends on the model *choosing* to do the right thing
-varies run to run. That is exactly why Phase 8 must repeat every case, and why the release
-blockers have to hold on every run rather than on average.
-
-The executable assertions in both notebooks exist so a regression fails loudly rather than
-quietly. There are **58** across the two notebooks, plus 24 tool checks, 21 approval
-transitions and 18 service checks. Please keep them passing.
-
-**One caveat on reproducing them today:** the Groq quota is exhausted, so cell 6.3 reports
-a `RateLimitError` and skips its assertions rather than crashing (F-21). Everything
-deterministic — 6.1, 6.2, 6.4 — still runs and asserts. The notebook executes end to end
-with 31 cells and 0 errors in that state, which is the honest condition to hand over in
-rather than a green run that needed a working quota to produce.
+Three of the defects found this project were in the *measurement*, not the product — and
+two of those were mine. An evaluation that hides its own defects cannot be trusted about
+the product's. Please keep it that way.
