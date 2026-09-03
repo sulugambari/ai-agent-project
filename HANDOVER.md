@@ -1059,7 +1059,7 @@ points collapse into a rolling handover.
 | 5 · Managed RAG | Sulu | ✅ **Done.** H2 contract frozen; hybrid `w=0.6` selected (D-006) |
 | 6 · Tools + agent | Karthik | ⚠️ 6.1–6.4 done and committed; **6.5 outstanding** (needs model calls) |
 | 7 · Product experience | Together | ✅ Done, Karthik driving with Sulu observing. `service.py` is the single application layer; both interfaces call it and nothing else |
-| 8 · Evaluation | **Sulu** | ✅ **Handover complete — start now.** See §8 |
+| 8 · Evaluation | Sulu | ✅ Done — 0 blockers across 53 scored runs; coverage gap stated |
 | 9 · Packaging | Karthik | ✅ **Done.** 16/16 clean-checkout checks; evidence is in `EVALUATION_REPORT.md` |
 | 10 · Decide + demo | Together | ✅ **Done.** D-012: demonstrate with explicit limitations |
 
@@ -1221,7 +1221,20 @@ re-runnable and destroys its own volumes first, so its evidence cannot be a stal
 (D-004), the working model (D-005), the Phase 8 run design (D-009), F-15.1's weight drift,
 F-25's missing mode selection, and F-26's refusal-detection defect.
 
-## 12 · File map
+## 12 · Reproducing every claim
+
+Each is deterministic and needs no model key except the last.
+
+| Command | What it establishes | Result |
+| --- | --- | --- |
+| `uv run python scripts/build_index.py` | Builds both namespaces from source. A clean checkout has no index until this runs | 26 units |
+| `uv run python scripts/run_special_cases.py` | EVAL-008/011/012 — a failure is reported honestly rather than fabricated | 13/13 |
+| `uv run python scripts/verify_approval.py` | The approval gate's outcomes, with a counting executor | 11/11, **one execution** |
+| `uv run python scripts/verify_refusal.py` | The categorical access policy and the abstention classifier | 29/29 |
+| `uv run python scripts/verify_container.py` | Destroys the volumes, starts from the documented command, checks 16 properties | 16/16 |
+| `uv run python scripts/verify_behaviours.py` | The seven demonstrable behaviours, 3 runs each. **Needs a working key** | ⚠️ blocked on 401 |
+
+## 13 · File map
 
 | Path | What |
 | --- | --- |
@@ -1229,11 +1242,13 @@ F-25's missing mode selection, and F-26's refusal-detection defect.
 | `HANDOVER.md` | This file |
 | `deliverables/PRODUCT_BRIEF.md` | Product direction, priority questions, trust demonstrations, thresholds |
 | `deliverables/ACCESS_MATRIX.md` | 11 record classes × 4 roles, audited 32/32; source governance |
-| `deliverables/THREAT_MODEL.md` | 8 threats, 26 controls classified structural / behavioural / detective |
-| `deliverables/DECISIONS.md` | D-001 … D-006. **D-007 and D-008 are recorded in §5 here but not yet written up there** |
+| `deliverables/THREAT_MODEL.md` | **9** threats, 30 controls classified structural / behavioural / detective. T-09 is retrieved content *withholding* a permitted record — T-01 pointing the other way |
+| `deliverables/DECISIONS.md` | D-001 … D-012, including **D-010** (the refusal derives from the access matrix) and **D-012** (the release recommendation). D-007 and D-008 are recorded in §5 here but not written up there |
 | `deliverables/EVALUATION_REPORT.md` | Thresholds and the Phase 3 baseline, fixed before any variant existed |
-| `deliverables/SLIDE_DECK.md` | 17-slide structure + 78-entry step ledger |
-| `deliverables/figures/` | 18 tracked 2× PNGs with captions |
+| `deliverables/SLIDE_DECK.md` | The **ledger**: what each step found and which figure proves it. Points at the assembled deck |
+| `deliverables/FINAL_DECK.md` | **The deck (10.4).** 17 slides with speaker notes; all 23 figure references resolve |
+| `deliverables/SHOWCASE.md` | **The live demonstration script (10.1).** Seven beats, weighted — beats 3 and 4 take twelve of twenty-seven minutes |
+| `deliverables/figures/` | **24** tracked 2× PNGs, every one with a `.txt` caption stating the single thing it proves |
 | `notebooks/northstar_build.ipynb` | Sulu's spine — 56 cells, executes clean |
 | `notebooks/phase_04_live_github.ipynb` | Karthik's — Phases 4, **6 and 7** (31 cells). The name understates it |
 | `docs/CHAT_HISTORY.md` | Readable session transcript, 21 turns |
@@ -1241,7 +1256,8 @@ F-25's missing mode selection, and F-26's refusal-detection defect.
 | `src/company_assistant/rag/` | **The retrieval layer.** `contract.py` (the frozen H2 Protocol), `index.py` (Chroma + permission pre-filter + lifecycle), `lexical.py`, `semantic.py`, `hybrid.py` |
 | `src/company_assistant/connectors/github_live.py` | Live GitHub connector with fallback and freshness |
 | `src/company_assistant/tools/` | **The five tools.** `schemas.py` (typed envelopes), `knowledge.py`, `work_items.py`, `support.py`, `comparison.py` (the F-2 tool), `actions.py`, `conflicts.py`, `relevance.py` (the F-16 fix), `registry.py` (identity binding) |
-| `src/company_assistant/agent/` | `prompt.py` (the T-01 behavioural control), `runner.py` (bounded agent; derives the Answer contract from tool results, not model claims) |
+| `src/company_assistant/agent/` | `prompt.py` (the T-01 behavioural control), `runner.py` (bounded agent; derives the Answer contract from tool results, not model claims), `providers.py` (the one model boundary — the only file importing a provider SDK) |
+| `src/company_assistant/security/policy.py` | **D-010.** Derives a permission refusal from the access matrix *before any search runs* — the one part of a refusal that can be known rather than guessed |
 | `src/company_assistant/approval.py` | **The approval gate — deliberately outside `tools/`.** The agent can reach everything in `tools` and nothing here |
 | `src/company_assistant/service.py` | **The single application layer.** Imports neither Streamlit nor FastAPI. Also holds `EMPLOYEES` |
 | `src/company_assistant/api.py` | `/ask`, `/approve`, `/feedback`, `/health`, `/status`. Approval contract separate from the answer contract |
@@ -1254,7 +1270,7 @@ F-25's missing mode selection, and F-26's refusal-detection defect.
 | `data/index/freshness_manifest.json` | Last-indexed time and per-namespace freshness, persisted so a fresh process does not claim `local` over live data (F-15) |
 | `src/company_assistant/` | Starter connectors, permissions, lexical baseline |
 
-## 13 · The single most important thing
+## 14 · The single most important thing
 
 **The boundary holds, and it holds structurally. The reasoning layer is better than it was
 and still imperfect. The evidence for both is incomplete, and the report says so.**
