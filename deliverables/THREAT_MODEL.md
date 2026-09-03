@@ -23,7 +23,7 @@ control.* A threat defended only behaviourally is defended by hope. The assertio
 is executed in the notebook, so it fails loudly if a later phase weakens a control
 — it is not a sentence that quietly stops being true.
 
-Current tally: **14 structural, 4 behavioural, 8 detective** across 8 threats.
+Current tally: **16 structural, 5 behavioural, 9 detective** across 9 threats.
 Threats with no structural control: **none**.
 
 This is the direct answer to the assumption `02-system-design.md` tells us to
@@ -42,6 +42,7 @@ never the primary control for anything.
 | T-06 | Credential exposure | GitHub / Groq keys | **Yes** |
 | T-07 | Failure reported as fact | EVAL-008, EVAL-012 | No |
 | T-08 | Index lifecycle drift | EVAL-011 | Via T-02 |
+| T-09 | Retrieved content withholding a permitted record | `DOC-HR-001` read by People Operations | No |
 
 ## T-01 · Indirect prompt injection
 
@@ -65,6 +66,10 @@ There is no malicious user to detect.
 
 **Evidence required.** P3 answer summarizing the message as content, its tool
 trace, and the candidate set showing `DOC-HR-001` absent.
+
+**The direction this model originally missed.** Every control above defends against
+retrieved text making the agent do *more* than it should. Text that makes it do
+*less* went undefended for eight phases and cost a real failure — see **T-09**.
 
 **Explicitly rejected control.** Regex or keyword filtering of injection patterns.
 Step 1.1 showed the payload is trivially regex-detectable, which makes this
@@ -200,6 +205,52 @@ the boundary was declared solved.
 **Evidence required.** EVAL-011 passes in both directions, and
 `2_2_change_detection.png` shows the three-strategy comparison.
 
+## T-09 · Retrieved content withholding a permitted record
+
+**Threat.** Retrieved text tells the agent a record is confidential, and the agent
+obeys it and refuses an employee who is genuinely cleared for that record. The
+mirror of T-01: the same defect — following instructions found in content —
+except that instead of leaking a record it denies one.
+
+**Realised, and it went undetected for eight phases.** `DOC-HR-001`'s own body
+reads *"It must never be retrieved for Customer Success, Engineering, or Finance
+profiles."* Asked for it by **People Operations — the one role cleared for it** —
+the agent retrieved the record correctly and then refused. A second, worse form
+appeared alongside it: the agent refusing with **zero tool calls**, deciding from
+the question's wording and returning identical text for the cleared role and the
+denied one.
+
+**Why it was missed.** T-01 is written entirely about instructions that *widen*
+— overrides, requests to fetch, claims that an action is approved. A prohibition
+reads as caution rather than as an attack, and refusing looks like the safe
+direction. It is not: it denies an employee a record they own, and it does so
+while appearing to be the product working correctly.
+
+**Impact.** Not a disclosure, so not a release blocker — but it makes the
+permission boundary unreliable in the direction nobody inspects, and a boundary
+that fails silently in either direction is not a boundary. It also *hid* a
+second defect: Engineering's refusal looked correct while being grounded in
+nothing at all.
+
+| Layer | Type | Control |
+| --- | --- | --- |
+| Access policy | Structural | A permission refusal is derived from `ACCESS_MATRIX.md`'s categorical `Deny` rows before any search (`security/policy.py`, D-010), so it cannot be produced or suppressed by retrieved text |
+| Status derivation | Structural | A turn that declines having made **no tool call** is reported as `error`, never as a refusal: with no candidate set it has established neither absence nor a boundary (F-4) |
+| Status derivation | Structural | `forbidden` can no longer be derived from the answer's prose at all; anything that merely reads as a refusal becomes the weaker `insufficient_evidence` |
+| Tool contract | Behavioural | The search asserts the employee's entitlement in the tool's own voice, naming the role, **ahead of** the excerpts — after them, the confidentiality warning inside the excerpt won |
+| Prompt | Behavioural | The data-not-instructions rule is stated symmetrically: retrieved text can neither widen nor narrow access |
+| Audit | Detective | The trace names an unsearched refusal explicitly rather than letting it read as a grounded one |
+
+**Evidence required.** The role contrast run in both directions and repeated:
+People Operations **3 of 3 `answered`** citing `DOC-HR-001`, Engineering **3 of 3
+`forbidden`** with no leak — plus the candidate sets showing the pre-filter was
+correct throughout.
+
+**Generalisable.** A rule about untrusted content has two directions, and
+defending only the one that looks dangerous leaves the other open. The safe-seeming
+direction is the one that will not be tested, because its failures look like
+caution.
+
 ## Assumptions Challenged
 
 | Assumption | Verdict |
@@ -209,6 +260,8 @@ the boundary was declared solved.
 | "API access implies employee authorization." | **Rejected.** The live repository is public; live work items are still scoped to `engineering` (see `ACCESS_MATRIX.md`) |
 | "A refusal proves the record was filtered." | **Rejected.** A refusal is consistent with a politely-instructed model. Only the candidate set is evidence |
 | "Detecting the injection pattern solves injection." | **Rejected.** It is regex-detectable *here* and does not generalise. Data-not-instructions is the control that does |
+| "Obeying retrieved content is only dangerous when it widens access." | **Rejected, by a real failure.** A prohibition printed inside `DOC-HR-001` made the agent refuse the one role cleared for it (T-09). Refusing is not the safe direction; it is the untested one |
+| "A refusal the agent states is a refusal it determined." | **Rejected.** Observed with **zero tool calls** and identical wording for a cleared and a denied role. A stated reason is not a derived one |
 
 ## Residual Risks — Not Defended in This Prototype
 

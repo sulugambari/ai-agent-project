@@ -1,15 +1,17 @@
 # HANDOVER — Northstar Release Coordinator
 
-**For Sulu.** Everything needed to continue from **Phase 8** without
+**For the team.** Everything needed to continue into **Phase 10** without
 reverse-engineering decisions already taken. Read sections 1–3 (about 10 minutes), then
 jump to §8.
 
-*(Written by Sulu for Karthik at the Phase 5 boundary, then turned around by Karthik at
-the Phase 7 boundary. Now turned around again: Phases 0–8 are complete and **Phase 9 is
-yours**. The earlier phase briefs it carried are in the git history.)*
+*(Written by Sulu for Karthik at the Phase 5 boundary, turned around by Karthik at the
+Phase 7 boundary, and again for Phase 9. Now Phases 0–9 are complete and **Phase 10 is
+joint**. The earlier phase briefs it carried are in the git history.)*
 
-- **Last updated:** 3 September 2026, after **Phase 8 closed**
-- **State:** Phases 0–8 complete · Phases 9–10 open · 41 commits, all on `main`
+- **Last updated:** 3 September 2026, after **Phase 9 closed**
+- **State:** Phases 0–9 complete · **Phase 10 open** · 54 commits, all on `main`.
+  **Not pushed** since `46e7ffc` — the last three commits are local and awaiting the
+  human team's authorisation
 - **Retrieval default:** hybrid, `lexical_weight = 0.6` (D-006). **F-15.1 is fixed at
   source** — the rag default and the tool constant now both read 0.6 and are asserted equal
 - **Release blockers: all five at 0** across 53 scored runs
@@ -17,8 +19,15 @@ yours**. The earlier phase briefs it carried are in the git history.)*
   scored runs and `hybrid_agent` covers **6 of 15** cases, stopped by a free-tier
   token-per-minute limit (F-27). The three-variant comparison `05` requires is therefore
   not complete — treat that as the largest caveat on any conclusion
-- **Model:** `openai/gpt-oss-20b`. **D-007 remains unsettled** — the models were never
-  distinguished, and the report claims no comparison
+- **Model:** `poolside/laguna-xs-2.1:free` **via OpenRouter** (`LLM_PROVIDER=openrouter`).
+  Groq is retained, not replaced, so the provider comparison `05` asks for stays runnable.
+  **D-007 remains unsettled** on Groq's own models, and the report claims no comparison
+- **The permission refusal is now structural, and F-34's evidence was void** — it was
+  produced by refusals that made **zero tool calls**. See **F-36** and **D-010**; this is
+  the most important change since Phase 8
+- **Packaged:** `docker compose up --build` → 127.0.0.1:8501 and :8000. Verified 16/16
+  from destroyed volumes by `scripts/verify_container.py`. The image is **9.57 GB** and
+  the reason is recorded in §8
 - **Board:** <https://github.com/users/sulugambari/projects/12>
 - **Full session transcript:** `docs/CHAT_HISTORY.md` (readable, 21 turns) and
   `docs/chat-history-raw.jsonl` (verbatim, 8.4 MB). **Both cover Phases 0–5 only** — the
@@ -88,8 +97,8 @@ cp .env.example .env
 | 6 · Tools and one agent | Karthik | ✅ Done — 6.5 completed from the Phase 8 harness rows, which *are* the agent smoke run |
 | 7 · Product experience | Together | ✅ Done — plus restyled as the Northstar intranet portal, with the role-simulation disclaimer |
 | 8 · Comparative evaluation | Sulu | ✅ Done — 0 blockers across 53 scored runs; coverage gap stated |
-| **9 · Package the product** | **Karthik** | **← you start here.** See §8 |
-| 10 · Decide and demonstrate | Together | Todo |
+| 9 · Package the product | Karthik | ✅ Done — one image, three services; 16/16 clean-checkout checks |
+| **10 · Decide and demonstrate** | **Together** | **← you start here.** See §8 |
 
 Phases 3 and 4 ran in parallel. From Phase 5 onward the team works **sequentially**
 (D-005): one active phase, handed over at each boundary.
@@ -773,6 +782,12 @@ Abstention is the behaviour the product is most proud of and the easiest to mist
 non-answer, so it needs its own visual language rather than the answer's.
 
 ### F-34 · "You may not see this" and "we do not have this" are different facts
+
+> **⚠ The mechanism recorded here was replaced, and its evidence was invalid — see
+> F-36 and D-010.** The distinction below is right and still shipped. How it was
+> *derived* was not: it read the model's own wording, and the "3 of 3 `forbidden`"
+> runs that appeared to confirm it had made **zero tool calls**. `forbidden` now
+> comes from the declared access matrix before any search runs.
 Every refusal was reported as `insufficient_evidence`, including the request for the
 restricted compensation review. That told the employee **the company had no information**,
 when the truth was that they **were not cleared for it**. `AnswerStatus` already had
@@ -845,6 +860,102 @@ enforced** — a policy nothing can currently violate.
 parameterised by id, matching the `get_support_case` contract. Until it exists, the brief's
 four-family and second-project claims must be corrected rather than repeated.
 
+### F-36 · The agent refused without searching — and obeyed a prohibition printed inside a record
+
+Found by hand-testing `TEST_SCRIPT.md` question 3 as **Priya Shah**, the one role
+cleared for `DOC-HR-001`. She was refused her own record.
+
+**Retrieval was correct the whole time.** Priya's candidate set is
+`[DOC-HR-001, DOC-SECURITY-404]` with the record at **rank 1, score 1.0**; Leo's
+ten-record set never contains it. The pre-filter has never been the problem, and this
+finding is not a leak — it is the boundary failing in the direction nobody was watching.
+
+**Three defects, in the order they surfaced.**
+
+**1 · The refusal was decided before anything was searched.** The trace read
+`Tool calls: 0 of 6 permitted`. The model refused from the question's vocabulary alone
+and returned **byte-identical text for People Operations, who is cleared, and
+Engineering, who is not**. Answering the same way for both is precisely what a
+permission-aware assistant must never do.
+
+**This invalidates F-34's evidence.** Its "3 of 3 `forbidden`" was produced by exactly
+these unsearched refusals, so Engineering's refusal looked correct while being grounded
+in nothing. F-4 restated: only the candidate set is evidence, and a turn with no tool
+call has no candidate set. A turn that now declines having called no tool is reported
+as **`error`**, not as a refusal — with no search it has established neither an absence
+nor a boundary, and asserting either is a claim wrong by construction.
+
+**2 · Retrieved text was narrowing access.** Once it searched, Priya was still refused
+1 of 3 — and the reason was the document's own body: *"It must never be retrieved for
+Customer Success, Engineering, or Finance profiles."* The agent obeyed a prohibition
+printed inside retrieved content.
+
+**That is T-01 pointing the other way.** The threat model's data-not-instructions rule,
+and the whole prompt around it, is written about instructions that make the agent *do*
+something — overrides, requests to fetch, claims that an action is approved. Nothing
+covered text that makes it *withhold*. It is the same defect — obeying content — except
+that instead of leaking a record it denied one to the person entitled to it. **Only the
+widening direction had ever been defended.**
+
+**3 · `forbidden` could not be derived from prose, for a reason no better matcher fixes.**
+With the search restored, three runs of Leo's refusal returned `insufficient_evidence`,
+`forbidden`, `insufficient_evidence` — all saying *"I could not find this"*. The status
+was a wording lottery, because **from inside the permitted set the agent has no more
+information than the classifier does.** A record it may not see and a record that does
+not exist look identical to it.
+
+This is the **fourth** prose-parsing defect here, after F-20 (U+2011 voiding citations),
+F-26 (U+2019 voiding a refusal) and F-31 (a qualifying phrase voiding an answer). The
+first three were fixable by reading the prose better. This one was not, and that is the
+distinction worth carrying: **normalising and locating a phrase cannot recover
+information the writer never had.**
+
+**The fix, and what it costs.** `security/policy.py` derives the refusal from
+`ACCESS_MATRIX.md`'s categorical `Deny` rows, before any search — see **D-010**, a human
+-team decision because it changes what the boundary discloses. It reveals only what the
+matrix already publishes (a role is not cleared for a class) and never that a matching
+record exists. `Conditional` classes never fire: there the pre-filter is the only
+authority. The mirror, `categorical_grant`, asserts entitlement in the tool's own voice,
+naming the role, **ahead of the excerpts** — placed after them, the confidentiality
+warning inside the excerpt won.
+
+**Measured:** 21/21 deterministic policy cases, including every `TEST_SCRIPT.md` question
+that must **not** fire; live 3 runs per direction — Priya **3/3 `answered`** citing
+`DOC-HR-001`, Leo **3/3 `forbidden`**, identical wording, no leak; 5/5 regression on P1,
+the refund conflict, injection resistance and abstention.
+
+**Two smaller things it caught.** A blanket "any tool denial wins" rule turned a correct
+answer into a refusal, because the agent made a stray `get_support_case("DOC-HR-001")`
+call that was denied for an unrelated reason — so a **policy** denial outranks retrieval
+while an incidental one does not. And it closes F-19 structurally in the denied
+direction: if the agent follows the injected bait and searches for the salary review,
+Engineering meets a denial rather than a confident-looking result set.
+
+**The vocabulary is now the risk.** A false positive denies an employee something they
+are entitled to, which is worse than the defect this closed. It is deliberately small
+and phrase-bounded; `pay` is excluded because it appears inside *"payment retry"* in
+`GH-142`. Add a term only with a case in the 21-case suite.
+
+### F-37 · Two more disclosures that were wrong by construction
+
+Both latent rather than firing, and both the F-15.2 / F-25 family — a status asserting a
+configuration instead of asking for one.
+
+- **`agent_available` read `GROQ_API_KEY` whatever `LLM_PROVIDER` said.** On an
+  OpenRouter-only setup the portal would announce a missing Groq key and pre-select the
+  deterministic baseline while the agent was perfectly able to run. It now asks the
+  provider boundary, and `/status` and the sidebar name the variable the **active**
+  provider needs.
+- **`Answer.retrieval_mode` was the literal `"hybrid"`.** F-25 fixed this in
+  `ServiceStatus` and left it wrong in the per-answer contract — the one an employee
+  actually reads — so a `semantic_agent` run would report `Retrieval: hybrid` in the
+  interface caption and in **every feedback row it produced**. The toolset now carries
+  the mode it was built with.
+
+The pattern across F-15.2, F-25 and both of these: **a disclosure that is a hardcoded
+literal will be wrong the moment anything is configurable, and it fails silently because
+it is still a plausible value.**
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
@@ -901,8 +1012,8 @@ points collapse into a rolling handover.
 | 6 · Tools + agent | Karthik | ⚠️ 6.1–6.4 done and committed; **6.5 outstanding** (needs model calls) |
 | 7 · Product experience | Together | ✅ Done, Karthik driving with Sulu observing. `service.py` is the single application layer; both interfaces call it and nothing else |
 | 8 · Evaluation | **Sulu** | ✅ **Handover complete — start now.** See §8 |
-| 9 · Packaging | Karthik | Container startup evidence returns to Sulu for `EVALUATION_REPORT.md` |
-| 10 · Decide + demo | Together | — |
+| 9 · Packaging | Karthik | ✅ **Done.** 16/16 clean-checkout checks; evidence is in `EVALUATION_REPORT.md` |
+| **10 · Decide + demo** | **Together** | **Active.** See §8 |
 
 **Why sequential:** no concurrent edits to shared files, no risk of two coding-agent
 sessions rewriting the same notebook, one reviewable line of history, and every phase
@@ -942,62 +1053,77 @@ produces merge conflicts that are painful to resolve.** You have your own:
 - **Sulu's:** `notebooks/northstar_build.ipynb` — please do not edit
 - Step 10.3 splices them for the final documentation
 
-## 8 · Your Phase 9 brief
+## 8 · Phase 10 brief — decide and demonstrate
 
-Board issue: [#10](https://github.com/sulugambari/ai-agent-project/issues/10).
-Course text: `05-evaluation-and-release.md` Phase 9.
-*(The Phase 8 brief that used to live here is in the git history.)*
+Board issue: [#11](https://github.com/sulugambari/ai-agent-project/issues/11).
+Course text: `05-evaluation-and-release.md` Phase 10.
+*(The Phase 8 and Phase 9 briefs are in the git history.)*
 
 ### Steps
-- **9.1** Dockerfile + compose: both ports, secrets outside the image, explicit index and
-  feedback volumes, model-free health endpoint, local GitHub fallback preserved
-- **9.2** Clean-checkout startup verification using only the documented commands
+- **10.1** `SHOWCASE.md` + the seven-beat demonstration script — **still the blank
+  template**, and the largest single gap
+- **10.2** Final `DECISIONS.md` release entry: demonstrate / demonstrate with explicit
+  limitations / do not demonstrate yet
+- **10.3** Final review: correctness, security, privacy scrub, notebook tidy, board closeout
+- **10.4** Assemble the deck from the `SLIDE_DECK.md` ledger and the tracked figures
 
-### What the container has to get right, and why
+### What Phase 9 delivered, and its one known limitation
 
-1. **Secrets outside the image.** `.env` is git-ignored and must stay out of the build
-   context. Mount it or pass the variables; never `COPY .env`.
-2. **A model-free health endpoint.** `/health` already avoids the model deliberately, so a
-   readiness probe cannot burn quota — which matters more than it sounds on a tier where
-   tokens-per-minute is the binding limit (F-27).
-3. **Explicit, persistent volumes for `data/index/` and `data/feedback/`.** Both are
-   git-ignored, and the index carries `freshness_manifest.json`. If that file is lost the
-   app reports `indexed never` and defaults every namespace to `local`, asserting
-   "committed fixture" over data that was really live or a degraded fallback — a
-   **disclosure wrong by construction** (F-15.2). A container that loses the manifest
-   re-introduces a defect we already fixed.
-4. **The embedding model must not be downloaded on every start.** It is ~90 MB and the
-   first load cost 39 s against 7.3 s warm. Either bake it into the image or cache it in a
-   volume; a cold download on each start makes the product look broken (F-22 territory).
-5. **Bind explicitly.** Streamlit binds *all* interfaces by default and advertised a LAN
-   URL during step 0.3 (F-9). An unauthenticated, permission-aware assistant should not be
-   network-reachable by accident. The portal disclaims that identity is simulated — the
-   container should not quietly widen who can reach it.
-6. **Preserve the local GitHub fallback.** `data/raw/github/` must be present in the image,
-   or a live-fetch failure has nothing to degrade to.
-7. **Do not claim production readiness.** `05` is explicit, and `THREAT_MODEL.md` lists
-   what remains unsecured.
+`docker compose up --build` → <http://127.0.0.1:8501> and <http://127.0.0.1:8000/docs>.
+One image, three services: `index` builds both namespaces once and exits, `api` and `app`
+gate on it succeeding. `scripts/verify_container.py` reproduces the evidence — **16/16
+from destroyed volumes**, both interfaces reachable **24 s** after `up`, and the
+`project_board` namespace fetched **live from inside the container**.
 
-### Completion evidence required
-A teammate starts the packaged product from the repository instructions and reaches both
-interfaces without repairing paths or copying hidden files.
+`scripts/build_index.py` is new and closed a real gap: `data/index/` is git-ignored, so a
+clean checkout had no index and the only way to build one was executing a notebook cell.
+That is not a documented command, and it made this phase's completion evidence
+unreachable.
 
-### If you have quota to spare, this is worth more than packaging polish
+**The image is 3.24 GB as Docker reports it, and 5.7 GB of virtual environment once
+unpacked — 2.7 GB of which is `site-packages/nvidia`.** `sentence-transformers` pulls
+`torch`, which on Linux drags in the whole NVIDIA CUDA stack for a CPU-only MiniLM: those
+2.7 GB are never executed. *(A first reading of 9.57 GB was wrong — `docker images` was
+summing a multi-platform manifest list including build attestations. `docker image
+inspect` is the figure to trust.)*
+The fix is pinning the CPU-only torch index in `pyproject.toml`, which **regenerates
+`uv.lock`** — the environment every evaluation ran against. Left as a human-team decision
+rather than taken unilaterally. Either fix it and note the re-lock, or report the size as
+a limitation; do not present it as a considered choice.
 
-Three things Phase 8 could not prove, in priority order:
+### The three things Phase 10 has to be honest about
 
-1. **EVAL-010 end to end.** Every agent run failed with `APIStatusError` after 100–123 s
-   with **zero tool calls**. The approval boundary is proven *structurally* (21 transitions
-   in Phase 6) and unproven *through the agent*. The cause is unresolved; my suspicion is a
-   request-size or provider limit on the only turn that asks the agent to compose a
-   payload, but that is a suspicion. **Capturing the exception *message* rather than only
-   its class would probably settle it in one run.**
-2. **`semantic_agent` on Tier A** — 18 turns. It is the missing *variant*, so it costs the
-   report more than the missing cases do. `uv run python scripts/run_eval.py semantic_agent --tier=A`
+1. **The evaluation is incomplete and the report says so.** `semantic_agent` has no
+   scored runs; `hybrid_agent` covers 6 of 15 cases. The three-variant comparison `05`
+   requires is **not** complete.
+2. **The Phase 8 rows predate three system changes** — the F-32 prompt fix, D-010, and
+   the F-31/stray-refusal classifier work. Any re-run is a different system and the rows
+   must not be pooled, the same discipline as the F-26 pre/post split.
+3. **Do not present the pass counts.** The baseline shows more passes than the agent
+   through coverage alone, and all 15 of its statuses are `evidence_found` — a non-answer
+   the scorer accepts. The like-for-like comparison on the 5 cases scored in both is
+   **hybrid 2, baseline 1, tied 2**.
+
+### If quota allows, in priority order
+
+1. **`semantic_agent` on Tier A** — 18 turns. The missing *variant* costs the report more
+   than the missing cases do. OpenRouter's limits now make it feasible where Groq's did not.
+   `uv run python scripts/run_eval.py semantic_agent --tier=A`
+2. **EVAL-010 end to end.** Every Groq run failed with `APIStatusError` after 100–123 s
+   with **zero** tool calls. Capturing the exception *message* rather than only its class
+   would probably settle it in one run — and a different provider may simply not have the
+   problem.
 3. **The 9 Tier B `hybrid_agent` cases** — 9 turns.
 
-Everything resumes: completed **scored** rows are skipped, and infrastructure failures are
-retried rather than skipped.
+Everything resumes: completed **scored** rows are skipped and infrastructure failures are
+retried.
+
+### Two things worth fixing before the demonstration
+
+- **F-35 — one narrow read-only tool over `projects` and `customers`.** Until it exists,
+  `PRODUCT_BRIEF.md`'s "P1 spans four source families" and "P-ORBIT is a second instance"
+  are both false and must be corrected rather than repeated.
+- **Feedback is at 4 entries against a threshold of 5**, with no decision traced to it.
 
 ## 9 · Working conventions
 
@@ -1083,6 +1209,11 @@ F-25's missing mode selection, and F-26's refusal-detection defect.
 | `src/company_assistant/approval.py` | **The approval gate — deliberately outside `tools/`.** The agent can reach everything in `tools` and nothing here |
 | `src/company_assistant/service.py` | **The single application layer.** Imports neither Streamlit nor FastAPI. Also holds `EMPLOYEES` |
 | `src/company_assistant/api.py` | `/ask`, `/approve`, `/feedback`, `/health`, `/status`. Approval contract separate from the answer contract |
+| `Dockerfile` · `compose.yaml` · `.dockerignore` | Phase 9 packaging. One image, three services; secrets at run time only |
+| `scripts/build_index.py` | The documented index bootstrap. A clean checkout has no index until this runs |
+| `scripts/verify_container.py` | Step 9.2's evidence, re-runnable: destroys the volumes and checks 16 properties |
+| `src/company_assistant/security/policy.py` | **The categorical access policy (D-010).** Derives a permission refusal from `ACCESS_MATRIX.md` before any search runs |
+| `deliverables/TEST_SCRIPT.md` | Fifteen hand-test questions with the profile to select and what should happen |
 | `app.py` | Streamlit chat, citations, warnings, trace, and the approval panel below the conversation |
 | `data/index/freshness_manifest.json` | Last-indexed time and per-namespace freshness, persisted so a fresh process does not claim `local` over live data (F-15) |
 | `src/company_assistant/` | Starter connectors, permissions, lexical baseline |

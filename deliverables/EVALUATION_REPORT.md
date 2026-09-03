@@ -362,7 +362,20 @@ these cases remain outstanding.
   Phase 6; not re-exercised through the agent for the same reason.
 - **Feedback collected and resulting decision:** **threshold not met.** Fewer than 5
   entries, and no product decision traced to feedback yet.
-- **Container startup evidence:** outstanding — Phase 9.
+- **Container startup evidence:** **16 of 16 checks pass** from destroyed volumes, using only
+  the documented command (`docker compose up --build`). Both interfaces reachable **24 s**
+  after `up`; the index volume started genuinely empty and was filled by the documented
+  bootstrap (26 units, `project_board` fetched **live from inside the container**);
+  freshness disclosed per namespace and unchanged across a restart, so the manifest defect
+  F-15.2 cannot recur in the container; no `.env` and no secret-shaped value in the image
+  while credentials do reach the running container; the local GitHub fallback and the
+  teaching database ship; runs as a non-root user; the embedding model loads under
+  `--network none`; both ports published to `127.0.0.1` only (F-9). Reproducible with
+  `uv run python scripts/verify_container.py`.
+  **Known limitation:** the image is **3.24 GB** (5.7 GB of virtual environment unpacked),
+  and **2.7 GB of that is `site-packages/nvidia`** — the CUDA stack `torch` pulls in on
+  Linux, never executed by a CPU-only embedding model. Reported rather than presented as a
+  considered size.
 
 ### Quota and operational metrics
 

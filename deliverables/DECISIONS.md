@@ -351,6 +351,76 @@ Record meaningful product and architecture decisions, not every small edit.
     distinguished rather than implying a comparison happened.
 - **Status:** Accepted
 
+### D-010 · A permission refusal is derived from the access matrix, not from the agent's words
+
+- **Phase:** 7/8 boundary, after a hand test of `TEST_SCRIPT.md` question 3
+- **Context:** D-034 (F-34 in `HANDOVER.md`) split refusals into `forbidden` — *you are
+  not cleared* — and `insufficient_evidence` — *the records hold nothing* — and derived
+  the distinction from phrases in the agent's own answer. A hand test showed that could
+  not work, and that its supporting evidence was invalid: the "3 of 3 `forbidden`" runs
+  had made **zero tool calls**, so the model was pattern-matching the question's
+  vocabulary rather than determining a boundary, and returned **byte-identical text for
+  People Operations, who is cleared for the record, and Engineering, who is not.** Once
+  the agent was made to search first, three runs of one refusal returned
+  `insufficient_evidence`, `forbidden`, `insufficient_evidence` — all saying *"I could
+  not find this"*. The status was a wording lottery.
+
+  The reason is structural, not a matching bug: **from inside its permitted set the
+  agent has no more information than the classifier does.** A record it may not see and
+  a record that does not exist are indistinguishable to it. Nothing in the turn can
+  separate them, so nothing read out of the turn can either. This was the fourth attempt
+  in this project at extracting meaning from generated prose, after F-20, F-26 and F-31.
+- **Options considered:**
+  1. **Derive it from the declared access matrix** — *selected*. `ACCESS_MATRIX.md`
+     records a categorical `Deny` per record class and role. When the employee's question
+     names such a class, the knowledge tool returns `denied` **before searching
+     anything**. Deterministic, needs no retrieval, and cannot be influenced by anything
+     the tools return.
+  2. **Check the denied records against the query** — *rejected.* The most precise
+     option, and also a real disclosure: the answer would differ depending on whether a
+     matching restricted record existed, which is exactly the bit `PRODUCT_BRIEF.md`
+     forbids a refusal from revealing.
+  3. **Drop the distinction entirely** — *rejected.* Honest and leak-free, but it
+     discards a product behaviour the team asked for, and it tells an employee the
+     company holds nothing when the truth may be that they are not cleared.
+- **What this discloses.** Only what `ACCESS_MATRIX.md` already publishes: that a role is
+  not cleared for a class of record. Because no search runs, the refusal says nothing
+  about whether any matching record exists. `Conditional` classes never fire — there,
+  per-record `allowed_roles` governs and the pre-filter is the only correct authority.
+- **The mirror-image defect this also closed.** The same hand test showed retrieved text
+  *narrowing* access: `DOC-HR-001`'s own body reads *"It must never be retrieved for
+  Customer Success, Engineering, or Finance profiles"*, and the agent obeyed that
+  sentence and withheld the record from the one role entitled to it. That is **T-01
+  pointing the other way** — obeying retrieved content, exactly as an injection would,
+  except that instead of leaking a record it denied one. Only the widening direction had
+  ever been defended. `security.policy.categorical_grant` now asserts the entitlement in
+  the tool's own voice, naming the role, ahead of the excerpts rather than after them.
+- **Evidence reviewed:** the zero-tool-call traces with identical text for both roles;
+  Priya's candidate set (`DOC-HR-001` at rank 1 of 2) against Leo's ten records without
+  it, proving the pre-filter was correct throughout; 21/21 deterministic policy cases
+  including every question in `TEST_SCRIPT.md` that must **not** fire; 3 runs per
+  direction live (Priya 3/3 `answered` citing `DOC-HR-001`, Leo 3/3 `forbidden`, no
+  leak); a 5/5 regression across the four behaviours that decide the demonstration.
+- **Decision and owner:** derive `forbidden` from the declared matrix. Owner: Sulu.
+- **Consequences or follow-up:**
+  - `forbidden` is now **structural** rather than behavioural, so it moves category in
+    `THREAT_MODEL.md`. Anything that only *reads* as a refusal is reported as
+    `insufficient_evidence`, the weaker and safer of the two claims.
+  - A turn that declines having called **no tool** is reported as `error`, not as a
+    refusal: with no candidate set it has established nothing (F-4).
+  - It closes F-19 structurally for the denied direction. The injected payload inflates
+    the relevance of the question it hijacks; if the agent follows that bait and searches
+    for the salary review, Engineering now meets a denial instead of a confident result
+    set.
+  - **The vocabulary is the risk and is deliberately small.** A false positive denies an
+    employee something they are entitled to, which is worse than the defect this closes.
+    `pay` is excluded because it appears inside *"payment retry"* in `GH-142`. New terms
+    need a test in the 21-case suite before they are added.
+  - **F-34's recorded evidence is void**, and is corrected rather than removed. Any
+    EVAL-005 result predating this change measured a system that refused without
+    searching.
+- **Status:** Accepted
+
 ## Decision Template
 
 ### Decision: Short descriptive title

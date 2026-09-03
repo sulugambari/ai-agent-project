@@ -1,0 +1,45 @@
+# Build context exclusions.
+#
+# The first entry is the one that matters. `.env` holds the OpenRouter, Groq and
+# GitHub credentials, and AGENTS.md forbids credentials reaching prompts, traces,
+# indexed content or deliverables - an image layer is all four at once, and a
+# layer cannot be un-published once pushed. Secrets reach the container at RUN
+# time through `env_file`, never at BUILD time.
+.env
+.env.*
+!.env.example
+
+# Credentials and local state that must never be baked in
+.venv/
+venv/
+*.pem
+*.key
+
+# Generated at run time and mounted as volumes instead, so a stale copy cannot be
+# shipped inside the image and then silently shadowed - or worse, NOT shadowed,
+# leaving the container serving an index whose freshness manifest describes a
+# different machine's last sync (F-15.2).
+data/index/
+data/generated/
+data/feedback/
+
+# History and tooling: large, and irrelevant to running the product
+.git/
+.github/
+.claude/
+docs/chat-history-raw.jsonl
+notebooks/
+**/__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

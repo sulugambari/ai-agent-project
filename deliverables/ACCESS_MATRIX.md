@@ -87,6 +87,27 @@ confidentiality of public data. It exists for three reasons:
   `filter_permitted()` excludes anything the role is not explicitly listed in.
   A malformed record therefore fails loudly at ingestion rather than becoming
   silently world-readable.
+- **How a categorical `Deny` is enforced, and what it discloses:** the `Deny` cells in
+  the matrix above are a statement about a *record class*, independent of whether any
+  particular record exists — so they can be enforced **before retrieval and without it**.
+  When an employee's question names such a class, `security/policy.py` returns a denial
+  and **no search runs at all**. The refusal therefore tells the employee only what this
+  document already publishes — that their role is not cleared for a class of record — and
+  says nothing about whether a matching record exists. That limit is deliberate: the
+  rejected alternative, checking the denied records against the question, would have given
+  a different answer depending on whether the record was there, and that difference is the
+  disclosure `PRODUCT_BRIEF.md` forbids a refusal from making (D-010).
+  **`Conditional` never fires this way.** It means per-record `allowed_roles` governs, so
+  no class-level statement is true of it and the pre-filter is the only correct authority.
+  The matching vocabulary is deliberately small and phrase-bounded, because a false
+  positive here denies an employee something they *are* entitled to — a worse failure than
+  the one it closes.
+- **How the boundary is protected in the other direction:** a record's own text cannot
+  narrow access any more than it can widen it. `DOC-HR-001`'s body names the roles that
+  must not read it, and the agent obeyed that sentence and refused **People Operations**,
+  the one role cleared for it (T-09, F-36). Permission is decided by the pre-filter before
+  the agent is called, so every record it receives is one the employee may read; the search
+  now asserts that entitlement in its own voice, naming the role, ahead of the excerpts.
 - **How citations are rechecked:** every cited `source_id` is re-validated against
   `filter_permitted()` for the current employee *at citation time*, not trusted
   from retrieval. An unresolvable or unpermitted citation counts as a fabricated

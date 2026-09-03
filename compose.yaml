@@ -1,0 +1,94 @@
+# Northstar Release Coordinator - one image, three services.
+#
+#   docker compose up --build
+#     -> http://127.0.0.1:8501  the intranet portal
+#     -> http://127.0.0.1:8000/docs  the API
+#
+# `index` runs once and exits; `api` and `app` wait for it to succeed. The index
+# build is a separate service rather than a step inside each container's start-up
+# for two reasons: both interfaces share one index volume, so building it twice
+# would be two processes writing one Chroma store; and a build that fails should
+# stop the stack loudly instead of leaving two apps running against an empty index
+# and answering "I could not find this in company knowledge" to everything.
+
+name: northstar
+
+# Anchor rather than repetition: api and app must run the SAME image, the SAME
+# credentials and the SAME volumes. If they diverge, the two interfaces stop being
+# two views of one application layer - which is the property AGENTS.md requires.
+x-runtime: &runtime
+  image: northstar-assistant:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    # Requirement 1: secrets arrive at RUN time. `.env` is in `.dockerignore` and
+    # never enters the build context. `required: false` so a clean checkout with
+    # no credentials still starts - the portal then falls back to the
+    # deterministic Phase 3 baseline and says so, rather than refusing to boot.
+    - path: .env
+      required: false
+  environment:
+    # The committed export the live connector degrades to when GitHub is
+    # unreachable. Overridable, but never absent.
+    GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-sulugambari/ai-agent-project}
+  volumes:
+    # Requirement 3. `index` carries `freshness_manifest.json`; a container that
+    # loses it reports "indexed never" and claims `local` over data that was
+    # really live or a degraded fallback (F-15.2). `feedback` is runtime data
+    # about real use and must survive a rebuild like any other record.
+    - index:/app/data/index
+    - feedback:/app/data/feedback
+  restart: unless-stopped
+
+services:
+  # ---- one-shot: build both retrieval namespaces from source ----------------
+  index:
+    <<: *runtime
+    command: ["python", "scripts/build_index.py"]
+    restart: "no"
+
+  # ---- FastAPI -------------------------------------------------------------
+  api:
+    <<: *runtime
+    command:
+      ["uvicorn", "company_assistant.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      # Bound to loopback on purpose (F-9). `0.0.0.0` above is the CONTAINER
+      # interface, which it must be for Docker's network to reach it; `127.0.0.1`
+      # here is what decides who on the network can reach the container. An
+      # assistant whose identity is simulated should not be LAN-reachable by
+      # accident - change this deliberately or not at all.
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      index:
+        condition: service_completed_successfully
+
+  # ---- Streamlit portal ----------------------------------------------------
+  app:
+    <<: *runtime
+    command:
+      ["streamlit", "run", "app.py",
+       "--server.address=0.0.0.0", "--server.port=8501",
+       "--server.headless=true", "--browser.gatherUsageStats=false"]
+    ports:
+      - "127.0.0.1:8501:8501"
+    healthcheck:
+      # Streamlit's own readiness path, and model-free for the same reason the
+      # API's is: a probe must not burn tokens or load 90 MB to answer.
+      test: ["CMD", "python", "-c",
+             "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    depends_on:
+      index:
+        condition: service_completed_successfully
+
+volumes:
+  # Named rather than bind-mounted so the container's own non-root user owns
+  # them, and so `docker compose down` does not delete an index that took a
+  # model load to build. `docker compose down -v` is the deliberate reset.
+  index:
+  feedback:

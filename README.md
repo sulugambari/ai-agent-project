@@ -211,6 +211,53 @@ cp .env.example .env
 
 Add your Groq API key and, when needed, the GitHub repository settings described in file `04`. Never commit `.env` or expose credentials in prompts, screenshots, traces, or evaluation reports.
 
+### 9. Build the Retrieval Index
+
+`data/index/` is git-ignored, so **a fresh clone has no index and nothing retrieves until one is built.** One command builds both namespaces from source:
+
+```bash
+uv run python scripts/build_index.py
+```
+
+The first run also downloads the ~90 MB embedding model. Add `--rebuild` to drop both namespaces first — the full-rebuild path for when an incremental sync cannot be trusted. A failed GitHub fetch does not fail the build: it degrades to the committed export under `data/raw/github/`, records the batch as `fallback`, and the interface discloses it.
+
+## Run the Packaged Product
+
+Everything above runs the product from source. The container is the packaged form, and it is what a teammate should need in order to start it.
+
+```bash
+cp .env.example .env      # then paste your keys; never commit this file
+docker compose up --build
+```
+
+- **Portal:** <http://127.0.0.1:8501>
+- **API:** <http://127.0.0.1:8000/docs> · health: <http://127.0.0.1:8000/health>
+
+Three services run from **one image**, because both interfaces call the same application layer and two images could drift apart. `index` builds the retrieval index once and exits; `api` and `app` wait for it to succeed, so a failed index build stops the stack loudly rather than leaving two interfaces answering *"I could not find this in company knowledge"* to everything.
+
+| Property | How |
+| --- | --- |
+| Secrets stay out of the image | `.env` is in `.dockerignore` and never enters the build context; credentials arrive at run time through `env_file`. Without a key the portal falls back to the deterministic baseline and says so |
+| The embedding model is baked in | Cached into the image at build time and loaded with the Hugging Face hub disabled, so a start never depends on the network |
+| Index and feedback persist | Named volumes `index` and `feedback`. `data/index/freshness_manifest.json` lives in the first — losing it would make a fresh process report `indexed never` and claim committed-fixture freshness over live data |
+| The local GitHub fallback ships | `data/raw/` is in the image, so a failed live fetch has something to degrade to |
+| Health is model-free | `/health` touches neither the model nor the index, so a readiness probe cannot burn tokens |
+| Ports bind to loopback | `127.0.0.1:8501` and `127.0.0.1:8000`. Streamlit binds every interface by default; an assistant whose identity is only simulated should not be network-reachable by accident |
+| Runs unprivileged | Non-root user `northstar` (uid 10001) |
+
+Stop with `docker compose down`; add `-v` to discard the index and the collected feedback.
+
+To reproduce the startup evidence yourself:
+
+```bash
+uv run python scripts/verify_container.py
+```
+
+It destroys the volumes, brings the stack up with the documented command, and checks each property above against the running containers.
+
+> [!WARNING]
+> Running in a container does not make this production-ready, and it is not claimed to. Authentication, secret management, backups, monitoring, provider contracts, and source-level authorization all remain absent. Identity is a profile selector, not a credential. See [THREAT_MODEL.md](deliverables/THREAT_MODEL.md).
+
 ## Coding Agent Collaboration
 
 Use Claude Code or Codex through any interface that can access the repository. At the beginning of each project phase, give it the phase objective and ask it to inspect the relevant files before proposing a plan. Let it perform most implementation work, but review its plan, changes, assumptions, and evidence before accepting the result and moving forward.
