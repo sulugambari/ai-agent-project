@@ -959,6 +959,47 @@ The pattern across F-15.2, F-25 and both of these: **a disclosure that is a hard
 literal will be wrong the moment anything is configurable, and it fails silently because
 it is still a plausible value.**
 
+### F-38 · EVAL-010 was a provider failure, not a product one — the approval boundary is now proven end to end
+
+The one case Phase 8 could never score. On Groq every run took **100–123 s, made zero
+tool calls, and ended in `APIStatusError`**; the suspicion recorded at the time was a
+request-size or provider-side limit on the only turn that asks the agent to compose a
+payload. It was a suspicion, not a finding.
+
+**On OpenRouter it simply works.** Three runs, `answered` in **5.3 / 5.9 / 10.1 s**, each
+preparing a `github_issue` proposal against `sulugambari/ai-agent-project` in state
+`pending_approval` with title and body visible and **nothing executed**. So the failure
+was the provider, and the product was never implicated — which is exactly why the harness
+had to classify it as infrastructure rather than score it (F-27). Had it been scored as
+behaviour, the report would carry a permanent Partial against a case that passes.
+
+**The gate those proposals hand off to is verified separately and deterministically** —
+`scripts/verify_approval.py`, **11/11**, and the number that matters is **one execution
+across the whole run**, for the single authorised approval:
+
+- approved → executed exactly once; re-approving **twice more** invoked the executor
+  **zero** further times;
+- rejected → never executed, and cannot subsequently be approved;
+- edited → a **new** proposal that still needs approval, so an edit cannot ride on an
+  approval granted for different text;
+- Maya cannot approve Leo's proposal — identity is re-derived at the gate, not trusted
+  from when the proposal was drafted;
+- no tool in the agent's toolset can execute anything; the executor lives outside
+  `tools/` entirely.
+
+**Two things the first version of that script got wrong, and they are worth keeping.**
+It asserted that re-approving should *raise*. It should not: `approve_and_execute` is
+deliberately **idempotent**, because Streamlit reruns the whole script on any interaction
+and a double execution is not recoverable by re-rendering a page. The property is
+"executed exactly once", and **only a counting executor can see it** — an exception check
+cannot distinguish a refusal from a silent no-op. It also assumed two identical
+`propose_action` calls give two proposals; ids are derived from content, so an identical
+re-proposal deliberately keeps its id.
+
+**Consequence for the report:** `05`'s completion evidence for the approval boundary is
+now met, and "the approval boundary is proven structurally and unproven through the agent"
+is no longer true. The open question is closed.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.

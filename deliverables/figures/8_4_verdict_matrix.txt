@@ -1,0 +1,1 @@
+Read the coverage column before the counts: the baseline's larger pass total is an artifact of the agent's run being stopped by a token-per-minute limit, not a better result.

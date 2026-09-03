@@ -1,0 +1,1 @@
+Agent latency meets both thresholds (p50 11.0 s, p95 33.8 s) only once provider failures are excluded - counted as product latency they put p95 at 115.1 s against a 90 s bar.

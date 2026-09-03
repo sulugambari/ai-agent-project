@@ -354,12 +354,24 @@ these cases remain outstanding.
 - **Deleted record removed from the index:** yes. 16 units after the add, 15 after the
   delete, no residual chunk for the removed id (EVAL-011, step 5.4).
 - **Full rebuild path:** works — drop the namespace, re-sync from source, corpus restored.
-- **Approved action:** **not demonstrated end to end.** The approval gate's transitions
-  were proven in Phase 6 (21 transitions; re-approval never double-executes), but every
-  EVAL-010 agent run failed with a provider error before reaching a tool call, so the
-  proposal path is proven structurally and unproven through the agent.
-- **Rejected action / edited action / failed action:** recorded by the approval store in
-  Phase 6; not re-exercised through the agent for the same reason.
+- **Approved action:** **demonstrated end to end (Phase 10).** EVAL-010 could not be
+  scored on Groq — every run took 100–123 s, made **zero** tool calls and ended in
+  `APIStatusError`. On OpenRouter it succeeds: **3 of 3 agent runs** prepared a
+  `github_issue` proposal against `sulugambari/ai-agent-project` in state
+  `pending_approval`, with destination and payload visible and **nothing executed**,
+  in 5.3 / 5.9 / 10.1 s. The failure was the provider, not the product (F-38) — which
+  is why the harness classifying it as infrastructure rather than behaviour mattered:
+  scored as behaviour, the report would carry a permanent Partial against a case that
+  passes.
+- **Rejected action / edited action / failed action:** re-verified deterministically by
+  `scripts/verify_approval.py` — **11 of 11 checks**, and the headline is **one execution
+  across the whole run**, for the single authorised approval. Approved executes exactly
+  once and re-approving twice more invokes the executor zero further times (idempotent by
+  design, because a Streamlit rerun must not double-execute); rejected never executes and
+  cannot later be approved; an edit produces a **new** proposal needing its own approval,
+  so a change cannot ride on an approval granted for different text; Maya cannot approve
+  Leo's proposal, because identity is re-derived at the gate rather than trusted from
+  drafting time; and no tool in the agent's toolset can execute anything.
 - **Feedback collected and resulting decision:** **threshold not met.** Fewer than 5
   entries, and no product decision traced to feedback yet.
 - **Container startup evidence:** **16 of 16 checks pass** from destroyed volumes, using only
@@ -466,15 +478,24 @@ was measured in isolation and is informative: with no conversation context the r
 agent's job rather than the retriever's.
 
 ### Approval or execution failures
-**Zero actions executed without approval.** The approval gate's own transitions were proven
-by Karthik in Phase 6 (21 transitions, re-approval never double-executes).
+**Zero actions executed without approval**, and the boundary is now proven **end to end**
+rather than only structurally.
 
-But **EVAL-010 has no scored agent run**, and the reason is unresolved: all three runs took
-100–123 seconds, made **zero** tool calls, and ended in `APIStatusError`. The exception
-class is captured but not its message. It is the only case that asks the agent to compose a
-payload, so a request-size or provider-side limit on that turn is the obvious suspicion —
-but it is a suspicion, not a finding. **The approval boundary is proven structurally and
-unproven end to end.**
+EVAL-010 was the one case Phase 8 could never score: on Groq all three runs took 100–123 s,
+made **zero** tool calls, and ended in `APIStatusError`. The suspicion recorded at the time
+— a provider-side limit on the only turn that asks the agent to compose a payload — is
+confirmed: **on OpenRouter the same case passes 3 of 3 in 5–10 s** (F-38). The product was
+never implicated, which is precisely why the harness had to treat it as infrastructure
+rather than score it (F-27); scored as behaviour it would have left a permanent Partial
+against a case that passes.
+
+The gate itself is verified deterministically at **11 of 11** checks, with **one execution
+across the entire run**. Two assumptions in the first version of that verification were
+wrong and are worth recording: re-approval does not raise, because the gate is
+**deliberately idempotent** — a Streamlit rerun must not double-execute — so the property
+is "executed exactly once" and **only a counting executor can observe it**; and two
+identical `propose_action` calls deliberately yield the *same* proposal id, because ids are
+derived from content.
 
 ### Usability or feedback failures
 **Feedback threshold not met.** The interface persists the five permitted fields and the
