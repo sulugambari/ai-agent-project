@@ -35,10 +35,13 @@ GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
 #: successful small probe are all necessary and none of them are sufficient. Same
 #: lesson as F-23: verify at the moment and size you actually need, never infer.
 #:
-#: This one completed the flagship question in 14.8 s citing all three expected
-#: sources. Alternatives that also passed the small probe but failed the real
+#: Selected on the case that DISCRIMINATES, not on the flagship question. Several
+#: models answer P1 well; only this one also REFUSES a request for a restricted
+#: document once the prompt instructs it to (F-32). nemotron-3.5-lightning answers
+#: P1 3/3 and still will not refuse, so answering ability and instruction
+#: compliance on a safety rule are separate properties. Alternatives that also passed the small probe but failed the real
 #: turn are listed in `scripts/probe_openrouter_models.py`.
-OPENROUTER_DEFAULT_MODEL = "nvidia/nemotron-3.5-lightning:free"
+OPENROUTER_DEFAULT_MODEL = "poolside/laguna-xs-2.1:free"
 
 #: Deterministic sampling, so run-to-run variation is the model's own and not
 #: ours. F-17 showed this is necessary but not sufficient: the agent still varied

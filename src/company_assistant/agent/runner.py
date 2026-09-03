@@ -349,6 +349,47 @@ def _reads_as_abstention(text: str, *, citation_count: int = 0) -> bool:
 
 
 
+def _citations(records: list[TurnRecord], text: str) -> tuple[list[Citation], list[str]]:
+    """Resolve cited ids against what was actually retrieved.
+
+    Returns the resolvable citations and the ids the model produced that no tool
+    ever returned. The second list is the T-04 evidence: a fabricated citation is
+    dropped from the answer and named in the trace, never silently passed on.
+    """
+    retrieved: dict[str, dict] = {}
+    for record in records:
+        for item in record.raw.get("evidence") or []:
+            if item.get("source_id"):
+                retrieved[str(item["source_id"])] = item
+        for key in ("authoritative",):
+            if record.raw.get(key) and record.raw[key].get("source_id"):
+                retrieved[str(record.raw[key]["source_id"])] = record.raw[key]
+        for item in record.raw.get("superseded") or []:
+            if item.get("source_id"):
+                retrieved[str(item["source_id"])] = item
+        case = record.raw.get("case")
+        if case and case.get("source_id"):
+            retrieved[str(case["source_id"])] = {
+                "source_id": case["source_id"], "title": f"Support case {case.get('case_id')}: "
+                f"{case.get('subject')}", "source_type": "database", "source_path": "data/database/company.db",
+            }
+
+    mentioned = list(dict.fromkeys(SOURCE_ID_PATTERN.findall(normalize_for_id_matching(text))))
+    citations = [
+        Citation(
+            source_id=source_id,
+            title=str(retrieved[source_id].get("title", source_id)),
+            source_type=str(retrieved[source_id].get("source_type", "")),
+            source_path=str(retrieved[source_id].get("source_path", "")),
+            occurred_at=retrieved[source_id].get("occurred_at"),
+        )
+        for source_id in mentioned
+        if source_id in retrieved
+    ]
+    fabricated = [source_id for source_id in mentioned if source_id not in retrieved]
+    return citations, fabricated
+
+
 def _proposal(records: list[TurnRecord]) -> ActionProposal | None:
     """The last proposal prepared this turn, if any. Never approved here."""
     for record in reversed(records):
