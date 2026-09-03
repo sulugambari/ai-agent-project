@@ -626,6 +626,40 @@ a rule change: the baseline's pass count is reported **with** the fact that all 
 **incomplete** — `semantic_agent` has zero runs and `hybrid_agent` covers 5 of 15 cases.
 That is a stated gap, not something to paper over with the pass counts we happen to have.
 
+### F-30 · `:free` + `tools` + a passing probe are each necessary and none is sufficient
+Switching to OpenRouter to escape Groq's 8,000-token-per-minute ceiling. Of **424** models,
+17 are free and declare tool calling. Eleven pass a small tool-call probe. **Only one
+completed the real workload.**
+
+| Model | 256-token probe | Real agent turn (~6,100 tokens) |
+| --- | --- | --- |
+| `nvidia/nemotron-3.5-lightning:free` | ok | **answered, 14.8 s, 3/3 expected sources** |
+| `nvidia/nemotron-3-super-120b-a12b:free` | ok | answered once, then **402 Payment Required** |
+| `minimax/minimax-m3:free` | ok | **402 Payment Required** |
+| `inclusionai/ling-3.0-flash-fin:free` | ok | **404 Not Found** |
+| `dots-studio/dots-3-note-preview:free` | ok | **404 Not Found** |
+
+The probe sends ~256 tokens. A real turn sends **~6,100**, because the system prompt, five
+tool schemas and the tool output all travel in context. A free allowance that covers the
+first says nothing about the second.
+
+**This is F-23 again at a different scale.** There the lesson was "verify the model exists
+on this tier". Here it is stronger: **verify at the size you will actually use.** A cheap
+check that passes is the most expensive kind of false confidence, because it stops you
+looking.
+
+`scripts/probe_openrouter_models.py` probes the catalogue and
+`ModelChoice.describe()` reports the model *and* the serving provider, which `05` requires
+because OpenRouter is a gateway.
+
+**One thing worth watching, not yet a finding.** `nemotron-3-super` returned
+`insufficient_evidence` on a turn whose text began *"Atlas is **not ready** for release.
+All four release conditions remain unmet"* — a correct answer, mislabelled. That is the
+**false-positive cost of the F-26 fix**: refusal matching is deliberately generous because
+it can only ever downgrade a status, never promote one, so a real answer occasionally reads
+as cautious. The chosen model has not shown it. If it appears with the model we keep, the
+regex needs narrowing on the *observed* phrasing rather than loosening the principle.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.

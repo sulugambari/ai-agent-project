@@ -22,13 +22,23 @@ Provider = Literal["groq", "openrouter"]
 
 GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
 
-#: Chosen from the live model list on 3 September: free, declares tool calling,
-#: and general-purpose rather than code-specialised. The agent has to route among
-#: five tools, reconcile conflicting sources and abstain, so a code model is the
-#: wrong shape for it even when it is the first free option alphabetically.
-#: Provisional until a real agent turn confirms tool routing works - which is the
-#: D-007 bake-off we could not run on Groq's free tier.
-OPENROUTER_DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+#: Chosen by running the REAL workload, not by reading the catalogue.
+#:
+#: Of 424 models, 17 are free and declare tool calling. Eleven of those pass a
+#: small tool-call probe. But a 256-token probe says nothing about this agent: a
+#: turn here is roughly 6,100 tokens because the system prompt, five tool schemas
+#: and the tool output all travel in context. Probed small, several models
+#: answered; given the real workload the same models returned
+#: `PaymentRequiredResponseError` (402) or `NotFoundResponseError`.
+#:
+#: So `:free` in the model id, and `tools` in `supported_parameters`, and a
+#: successful small probe are all necessary and none of them are sufficient. Same
+#: lesson as F-23: verify at the moment and size you actually need, never infer.
+#:
+#: This one completed the flagship question in 14.8 s citing all three expected
+#: sources. Alternatives that also passed the small probe but failed the real
+#: turn are listed in `scripts/probe_openrouter_models.py`.
+OPENROUTER_DEFAULT_MODEL = "nvidia/nemotron-3.5-lightning:free"
 
 #: Deterministic sampling, so run-to-run variation is the model's own and not
 #: ours. F-17 showed this is necessary but not sufficient: the agent still varied
