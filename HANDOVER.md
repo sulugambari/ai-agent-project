@@ -563,6 +563,24 @@ record our tier.
 failure mode the system reports *gracefully*. Graceful degradation and measurement are in
 tension, and the measurement side has to know every shape the degradation can take.
 
+**F-27 addendum, 3 September (live-demo session, not the evaluation harness).** F-27 says
+the constraint is TPM and *"the tier is not spent for the day."* That held during Phase 8's
+paced runs. It stopped holding during a day of live demoing plus repeated `verify_*`
+scripts and diagnostic calls on the **same key**: Groq returned
+
+> `Rate limit reached ... on tokens per day (TPD): Limit 200000, Used 199290, Requested
+> 2871. Please try again in 15m33s.`
+
+So **this account's Groq tier carries both limits** — 8,000 TPM *and* 200,000 tokens/day —
+and only the first was exercised (and documented) before. The daily one is easy to
+mis-diagnose live: a tiny plain completion (a handful of tokens) still succeeds right up
+until the budget is gone, so a health-check-style probe reports "the key works" while every
+real agent turn (~2,900+ tokens: system prompt + five tool schemas + tool output) 429s. Get
+the **full** exception message, not a truncated trace line, before concluding which limit
+fired — `runner.py`'s trace field cuts an exception string at 160 chars, which drops the
+`Used` / `Requested` / `try again in` figures that actually explain it. It resets on its own;
+no product fix needed, and nothing here contradicts F-27 — it sharpens it.
+
 ### F-28 · The agent answers P1 correctly but cites the defining document in only 1 of 3 runs
 Tier A, 3 runs, `hybrid_agent`. All three answered correctly and none leaked, but the
 release brief that **names the four release conditions** — `DOC-ATLAS-403` — appears in the
