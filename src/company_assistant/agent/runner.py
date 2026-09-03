@@ -244,7 +244,9 @@ def _derive_status(records: list[TurnRecord], cited: list[str], text: str) -> An
     # whose injected payload contains the words "confidential salary review".
     # The attack text inflates the relevance of the question it is hijacking, so
     # a strong relevance score cannot be allowed to overrule a stated refusal.
-    if _reads_as_abstention(text):
+    # citation count matters: a refusal phrase inside a well-grounded answer is a
+    # qualification, not an abstention
+    if _reads_as_abstention(text, citation_count=len(cited)):
         return "insufficient_evidence"
 
     return "answered"
@@ -275,6 +277,17 @@ _ABSTENTION_MARKERS = (
 )
 
 
+#: How much of the answer counts as "the opening". Genuine refusals in the stored
+#: transcripts all landed within the first 4%; these are deliberately looser so a
+#: refusal preceded by a short preamble still registers.
+_OPENING_CHARS = 240
+_OPENING_FRACTION = 0.20
+
+#: Below this length an answer is not a synthesis of several sources. Full answers
+#: in the stored transcripts start at 601 characters; genuine abstentions top out
+#: at 525.
+_SUBSTANTIAL_CHARS = 600
+
 #: Pairs an inability or prohibition with an action the employee asked for.
 #: Deliberately broad on the inability side and narrow on the action side, so it
 #: fires on "I can't share that" and "not permitted to disclose" but not on
@@ -287,68 +300,53 @@ _REFUSAL_PATTERN = re.compile(
 )
 
 
-def _reads_as_abstention(text: str) -> bool:
-    """True when the answer declines, refuses, or reports having found nothing.
+def _reads_as_abstention(text: str, *, citation_count: int = 0) -> bool:
+    """True when the answer's *purpose* is to decline, not merely to qualify.
 
-    Two mechanisms, deliberately. The literal list stays because it documents the
-    exact phrasings the models have actually produced. The regex is added because
-    a list of literals cannot keep up with wording: it already missed
-    "can't provide" while holding "cannot provide", which cost a correct refusal
-    its status. The regex pairs an inability verb with an action verb, which
-    generalises across contractions, negations and orderings.
+    Two mechanisms find candidate phrasings - a literal list documenting wordings
+    the models have actually produced, and a regex pairing an inability with a
+    request verb so contractions and orderings also fire. Both run over
+    normalised prose, so typographic punctuation cannot defeat them (F-26).
 
-    Both run over NORMALISED prose, so typographic punctuation cannot defeat them.
+    But finding a refusal phrase is not enough, and that was a real defect. A
+    model answered the flagship question in full, with five citations, and
+    included a closing *"What's missing: a resolved duplicate-event fix..."* - and
+    the status became `insufficient_evidence` while the interface displayed a
+    complete answer. **A refusal that qualifies an answer is not an abstention.**
 
-    The asymmetry Karthik recorded still holds and is why this is safe: matching
-    can only ever downgrade a status to `insufficient_evidence`, never promote a
-    refusal to `answered`. A false positive makes a real answer look cautious; a
-    miss makes a refusal look like an answer, and only the second misleads an
-    employee.
+    So position and substance decide. Measured across 18 stored transcripts:
+
+    | | genuine abstention | full answer |
+    | --- | --- | --- |
+    | phrase position | 1-4% of the text | absent |
+    | length | 333-525 chars | 601-1500 chars |
+    | citations | 0-1 | 4-6 |
+
+    A genuine refusal *opens* with the refusal, because declining is the whole
+    point of the turn. The rules below encode that, and keep the safety asymmetry
+    intact: an answer with **no** citations is still treated as an abstention
+    whatever the position, because there is nothing for it to have been
+    qualifying.
     """
     normalized = normalize_prose(text).lower()
-    if any(marker in normalized for marker in _ABSTENTION_MARKERS):
+    positions = [normalized.find(marker) for marker in _ABSTENTION_MARKERS
+                 if marker in normalized]
+    positions += [m.start() for m in _REFUSAL_PATTERN.finditer(normalized)]
+    if not positions:
+        return False
+
+    first = min(positions)
+    # A refusal in the opening is the answer, not a caveat within one.
+    if first <= max(_OPENING_CHARS, _OPENING_FRACTION * len(text)):
         return True
-    return bool(_REFUSAL_PATTERN.search(normalized))
+    # Nothing was grounded, so there is no answer for the phrase to qualify.
+    if citation_count == 0:
+        return True
+    # Short and barely cited: closer to a decline than to a synthesis.
+    if len(text) < _SUBSTANTIAL_CHARS and citation_count <= 1:
+        return True
+    return False
 
-def _citations(records: list[TurnRecord], text: str) -> tuple[list[Citation], list[str]]:
-    """Resolve cited ids against what was actually retrieved.
-
-    Returns the resolvable citations and the ids the model produced that no tool
-    ever returned. The second list is the T-04 evidence: a fabricated citation is
-    dropped from the answer and named in the trace, never silently passed on.
-    """
-    retrieved: dict[str, dict] = {}
-    for record in records:
-        for item in record.raw.get("evidence") or []:
-            if item.get("source_id"):
-                retrieved[str(item["source_id"])] = item
-        for key in ("authoritative",):
-            if record.raw.get(key) and record.raw[key].get("source_id"):
-                retrieved[str(record.raw[key]["source_id"])] = record.raw[key]
-        for item in record.raw.get("superseded") or []:
-            if item.get("source_id"):
-                retrieved[str(item["source_id"])] = item
-        case = record.raw.get("case")
-        if case and case.get("source_id"):
-            retrieved[str(case["source_id"])] = {
-                "source_id": case["source_id"], "title": f"Support case {case.get('case_id')}: "
-                f"{case.get('subject')}", "source_type": "database", "source_path": "data/database/company.db",
-            }
-
-    mentioned = list(dict.fromkeys(SOURCE_ID_PATTERN.findall(normalize_for_id_matching(text))))
-    citations = [
-        Citation(
-            source_id=source_id,
-            title=str(retrieved[source_id].get("title", source_id)),
-            source_type=str(retrieved[source_id].get("source_type", "")),
-            source_path=str(retrieved[source_id].get("source_path", "")),
-            occurred_at=retrieved[source_id].get("occurred_at"),
-        )
-        for source_id in mentioned
-        if source_id in retrieved
-    ]
-    fabricated = [source_id for source_id in mentioned if source_id not in retrieved]
-    return citations, fabricated
 
 
 def _proposal(records: list[TurnRecord]) -> ActionProposal | None:

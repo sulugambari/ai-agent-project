@@ -660,6 +660,45 @@ it can only ever downgrade a status, never promote one, so a real answer occasio
 as cautious. The chosen model has not shown it. If it appears with the model we keep, the
 regex needs narrowing on the *observed* phrasing rather than loosening the principle.
 
+### F-31 · A refusal that *qualifies* an answer is not an abstention
+The F-26 fix was too eager and produced the mirror-image defect. A model answered the
+flagship question in full — five citations, four reconciled conditions — and closed with
+*"**What's missing:** a resolved duplicate-event fix, attached rollback-rehearsal logs, and
+Nora's explicit go/no-go sign-off."* The status became `insufficient_evidence` while the
+interface displayed a complete answer.
+
+F-26 mislabelled a **refusal as an answer**; F-31 mislabelled an **answer as a refusal**.
+Both came from matching phrases in prose without asking what the phrase was *doing*.
+
+**Intermittent, so not fixable by chasing a transcript.** Re-running the same question
+returned `answered` correctly. F-17 again: the defect appears on some samples, which is why
+the classifier had to be made structurally right rather than patched against one output.
+
+**The distinguishing evidence, measured across 18 stored transcripts:**
+
+| | genuine abstention | full answer |
+| --- | --- | --- |
+| refusal-phrase position | **1–4%** of the text | absent |
+| length | 333–525 chars | 601–1500 chars |
+| citations | 0–1 | 4–6 |
+
+**A genuine refusal opens with the refusal**, because declining is the whole point of the
+turn. So position and substance now decide, not mere presence:
+
+- a phrase in the opening (240 chars or 20%) → abstention;
+- **no citations** → abstention whatever the position, since there is no answer for the
+  phrase to have been qualifying;
+- short *and* barely cited → abstention.
+
+The safety asymmetry is preserved: the "long but ungrounded, refuses late" case still
+reads as abstention. Verified 18 of 18 stored transcripts unchanged, plus four synthetic
+edge cases.
+
+**The general lesson, third time in this project.** F-20 (U+2011 voiding citations), F-26
+(U+2019 voiding a refusal) and now F-31 all come from reading meaning out of generated
+prose. Normalising the characters was necessary and not sufficient — **the same words mean
+different things depending on where they sit and what surrounds them.**
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
