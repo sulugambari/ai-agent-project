@@ -157,17 +157,18 @@ class ResultStore:
         return f"{case_id}|{variant}|{run_index}"
 
     def completed(self) -> set[str]:
-        if not self.path.exists():
-            return set()
+        """Keys that are genuinely DONE - scored rows only.
+
+        An infrastructure failure is not a result. Counting one as completed
+        would make a resumed run skip it, leaving the case permanently
+        unmeasured while the file looks full. Six rows were in exactly that
+        state after a rate-limited run: recorded, unscored, and invisible to a
+        retry.
+        """
         done: set[str] = set()
-        for line in self.path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
-                continue          # a truncated final line from an interrupted run
-            done.add(self.key(row["case_id"], row["variant"], row["run_index"]))
+        for row in self.rows():
+            if row.get("scored"):
+                done.add(self.key(row["case_id"], row["variant"], row["run_index"]))
         return done
 
     def append(self, row: dict[str, Any]) -> None:
@@ -175,16 +176,28 @@ class ResultStore:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     def rows(self) -> list[dict[str, Any]]:
+        """Every row, deduplicated by key, preferring a scored attempt.
+
+        The file is append-only, so retrying a rate-limited run writes a second
+        row for the same key. Without this, one unscored and one scored attempt
+        would both count toward a case's run total and understate its pass rate.
+        """
         if not self.path.exists():
             return []
-        out = []
+        latest: dict[str, dict[str, Any]] = {}
         for line in self.path.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                try:
-                    out.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-        return out
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue          # a truncated final line from an interrupted run
+            key = self.key(row["case_id"], row["variant"], row["run_index"])
+            existing = latest.get(key)
+            # a scored attempt always wins; otherwise the most recent one stands
+            if existing is None or row.get("scored") or not existing.get("scored"):
+                latest[key] = row
+        return list(latest.values())
 
 
 #: Markers of a quota event, wherever it surfaces.
