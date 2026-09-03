@@ -1,0 +1,1 @@
+Tool selection across 8 real agent turns. The agent stays well inside its 6-call bound (max 2), and reaches for compare_sources on the conflicting-evidence case rather than answering from the first plausible record - which is the F-2 mitigation working end to end. Tools with zero calls were not needed by the sampled questions, not unavailable.
