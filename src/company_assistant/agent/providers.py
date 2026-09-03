@@ -80,6 +80,30 @@ def resolve(model: str | None = None, provider: Provider | None = None) -> Model
     return ModelChoice("groq", model or os.getenv("GROQ_MODEL") or GROQ_DEFAULT_MODEL)
 
 
+#: Which environment variable holds the key for each provider. One mapping, so a
+#: caller asking "can the agent run?" cannot answer it against the wrong provider.
+API_KEY_VARIABLE: dict[Provider, str] = {
+    "groq": "GROQ_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+}
+
+
+def credentials_present(provider: Provider | None = None) -> tuple[bool, str]:
+    """Whether the ACTIVE provider has a key, and which variable that is.
+
+    `ServiceStatus.agent_available` previously read `GROQ_API_KEY` directly,
+    whatever `LLM_PROVIDER` said. On an OpenRouter-only setup the interface would
+    therefore announce "GROQ_API_KEY is not set, so only the deterministic
+    baseline can answer" and pre-select the baseline toggle - while the agent was
+    perfectly able to run. A disclosure wrong by construction, and the same family
+    as F-15.2 and F-25: a status that asserts a configuration instead of asking
+    for it. The variable name is returned alongside so the interface can name the
+    one the operator actually has to set.
+    """
+    variable = API_KEY_VARIABLE[provider or active_provider()]
+    return bool((os.getenv(variable) or "").strip()), variable
+
+
 def build_chat_model(model: str | None = None, provider: Provider | None = None) -> tuple[Any, ModelChoice]:
     """Return a LangChain chat model plus the choice it represents.
 

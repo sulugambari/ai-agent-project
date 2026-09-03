@@ -106,6 +106,9 @@ class StatusResponse(BaseModel):
     index_degraded: bool
     index_sources: list[dict[str, str]]
     agent_available: bool
+    #: The env var the ACTIVE provider needs. Exposed so an API consumer sees the
+    #: same honest disclosure the portal does, rather than inferring Groq.
+    credential_variable: str
     detail: str
     feedback: dict[str, int]
 
@@ -148,6 +151,7 @@ def service_status() -> StatusResponse:
             for name, freshness, detail in current.index_sources
         ],
         agent_available=current.agent_available,
+        credential_variable=current.credential_variable,
         detail=current.detail,
         feedback=service.feedback_summary(),
     )

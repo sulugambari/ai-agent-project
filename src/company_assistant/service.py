@@ -155,6 +155,9 @@ class ServiceStatus:
     index_degraded: bool
     index_sources: tuple[tuple[str, str, str], ...] = ()
     agent_available: bool = True
+    #: The env var the ACTIVE provider needs, so an interface can name the one an
+    #: operator must actually set rather than a hardcoded provider's.
+    credential_variable: str = "GROQ_API_KEY"
     detail: str = ""
 
 
@@ -350,6 +353,9 @@ class AssistantService:
     # -- status ---------------------------------------------------------------
     def status(self) -> ServiceStatus:
         """Report what the product can do, including honest index freshness."""
+        from company_assistant.agent.providers import credentials_present
+
+        agent_ready, credential_variable = credentials_present()
         try:
             index_status = self.index().status()
             return ServiceStatus(
@@ -367,7 +373,8 @@ class AssistantService:
                     (source.source, source.freshness, source.detail)
                     for source in index_status.sources
                 ),
-                agent_available=bool(os.getenv("GROQ_API_KEY")),
+                agent_available=agent_ready,
+                credential_variable=credential_variable,
                 detail=index_status.describe(),
             )
         except Exception as exc:  # noqa: BLE001 - status must answer even when broken
@@ -375,6 +382,6 @@ class AssistantService:
                 model=self.model_name, retrieval_mode=self.retrieval_mode,
                 lexical_weight=DECIDED_LEXICAL_WEIGHT, max_tool_calls=MAX_TOOL_CALLS,
                 index_units=0, index_last_indexed="unknown", index_degraded=True,
-                agent_available=False,
+                agent_available=False, credential_variable=credential_variable,
                 detail=f"index unavailable ({type(exc).__name__}); rebuild it before asking questions",
             )

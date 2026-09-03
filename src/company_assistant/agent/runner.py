@@ -206,6 +206,26 @@ def _derive_status(records: list[TurnRecord], cited: list[str], text: str) -> An
     retrieved at all, so an outage is never reported as absence (T-07).
     """
     if not records:
+        # A turn that called NO tool has looked at nothing, so it cannot honestly
+        # report either an absence or a permission boundary - and reporting one
+        # anyway is a claim wrong by construction, the family this project keeps
+        # finding. It was observed: asked for the compensation review, the model
+        # refused with 0 tool calls and IDENTICAL wording for People Operations
+        # (who is cleared for it) and Engineering (who is not). Refusing from the
+        # question's vocabulary answers the same way for both, which is precisely
+        # what a permission-aware assistant must never do - and it made Engineering's
+        # refusal look correct while it was never grounded in the boundary at all.
+        #
+        # `error` rather than `insufficient_evidence`, because the interface renders
+        # error as "draw no conclusion from this" - which is exactly right - while
+        # `insufficient_evidence` asserts the company holds no answer, and nothing
+        # here checked. F-4 restated: only the candidate set is evidence, and a
+        # turn with no tool call has no candidate set.
+        #
+        # Scoped to refusals on purpose: a follow-up answered from conversation
+        # history may legitimately call no tool, and must not be failed for it.
+        if _reads_as_abstention(text, citation_count=0):
+            return "error"
         return "insufficient_evidence"
 
     retrieved_anything = any(record.source_ids for record in records)
@@ -223,6 +243,23 @@ def _derive_status(records: list[TurnRecord], cited: list[str], text: str) -> An
     if prepared:
         return "answered"
 
+    # A POLICY denial outranks whatever else the turn retrieved. Only the
+    # knowledge search can issue one, and it does so before searching anything:
+    # it means the access matrix categorically denies this role the class of
+    # record the QUESTION named, so the refusal is about the question itself.
+    # Letting later retrieval outvote it would produce the "answer around the
+    # request" failure through the status rather than through the prose.
+    if any(record.tool == "search_company_knowledge" and record.status == "denied"
+           for record in records):
+        return "forbidden"
+
+    # Any OTHER tool's denial is incidental and must not decide the turn. Observed:
+    # People Operations asked for the compensation review, the knowledge search
+    # correctly returned `DOC-HR-001`, and the agent then made a stray
+    # `get_support_case("DOC-HR-001")` call - wrong tool, wrong id - which was
+    # denied because People Operations may not read business records. A blanket
+    # "any denial wins" rule turned that complete, correct answer into a permission
+    # refusal. So an incidental denial still only speaks when nothing was retrieved.
     if any(record.status == "denied" for record in records) and not retrieved_anything:
         return "forbidden"
     if any(record.status in {"error", "unparseable"} for record in records) and not retrieved_anything:
@@ -247,11 +284,22 @@ def _derive_status(records: list[TurnRecord], cited: list[str], text: str) -> An
     # citation count matters: a refusal phrase inside a well-grounded answer is a
     # qualification, not an abstention
     if _reads_as_abstention(text, citation_count=len(cited)):
-        # Distinguish WHY. "You may not see this" and "we do not hold this" are
-        # different facts, and the interface renders them differently, so
-        # collapsing both into insufficient_evidence told the employee the company
-        # had no information when the truth was that they were not cleared for it.
-        return "forbidden" if _refusal_reason(text) == "permission" else "insufficient_evidence"
+        # `insufficient_evidence`, never `forbidden`, and this is a deliberate
+        # narrowing. F-34 derived the permission/absence distinction from the
+        # model's own wording. That could not work, for a reason no amount of
+        # better matching would fix: from inside the permitted set the agent has
+        # no more information than the classifier does, so it was guessing and the
+        # classifier was reading the guess. Three consecutive runs of one refusal
+        # returned insufficient_evidence, forbidden, insufficient_evidence - all
+        # saying "I could not find this".
+        #
+        # A permission refusal is now decided ABOVE the model, from the declared
+        # access matrix, and arrives here as a tool `denied` status handled higher
+        # up (`security.policy`). Everything that only reads as a refusal is an
+        # absence claim, which is the weaker and therefore safer of the two: it
+        # never tells an employee they are barred from something on the strength
+        # of a sentence they happened to phrase a particular way.
+        return "insufficient_evidence"
 
     return "answered"
 
@@ -466,7 +514,7 @@ def ask(
                 status="error",
                 text=f"I could not complete this request: {type(exc).__name__}. "
                 "No conclusion should be drawn from this failure.",
-                retrieval_mode="hybrid",
+                retrieval_mode=toolset.retrieval_mode,
                 trace=[f"Agent invocation failed: {type(exc).__name__}: {str(exc)[:160]}"],
             ),
             messages,
@@ -548,6 +596,13 @@ def ask(
         # Kept loud. A dropped citation is a near miss on a release blocker, not
         # a formatting detail.
         trace.append(f"DROPPED unretrieved source id(s) cited by the model: {', '.join(fabricated)}")
+    if not records and _reads_as_abstention(text, citation_count=0):
+        trace.append(
+            "WARNING: the assistant declined without calling a single tool, so it "
+            "searched nothing and its stated reason is unverified. A refusal must be a "
+            "conclusion from retrieval; with no candidate set there is no evidence "
+            "either way (F-4). Reported as an error, not as a refusal."
+        )
     trace.extend(dict.fromkeys(warnings))  # de-duplicated, order preserved
     trace.append(f"Derived status: {status} (from tool outcomes, not from the answer text)")
     trace.append(f"Index: {index_status.describe()}")
@@ -556,7 +611,7 @@ def ask(
         Answer(
             status=status,
             text=text,
-            retrieval_mode="hybrid",
+            retrieval_mode=toolset.retrieval_mode,
             citations=citations,
             trace=trace,
             action_proposal=_proposal(records),

@@ -99,6 +99,12 @@ class Toolset:
     tools: tuple[BaseTool, ...]
     knowledge_retriever: Retriever
     board_retriever: Retriever
+    #: The mode these tools actually search in. Carried here because the agent has
+    #: to report it and had no way to ask: `Answer.retrieval_mode` was the literal
+    #: "hybrid", so a semantic run reported hybrid in the interface caption and in
+    #: every feedback row. F-25 fixed that in `ServiceStatus` and left it wrong in
+    #: the per-answer contract, which is the one an employee actually reads.
+    retrieval_mode: RetrievalMode = "hybrid"
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -232,4 +238,5 @@ def build_toolset(
         tools=tools,
         knowledge_retriever=knowledge_retriever,
         board_retriever=board_retriever,
+        retrieval_mode=retrieval_mode,
     )

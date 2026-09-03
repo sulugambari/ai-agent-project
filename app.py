@@ -425,7 +425,11 @@ with st.sidebar:
         f"(lexical weight {status.lexical_weight}) · at most {status.max_tool_calls} tool calls per question"
     )
     if not status.agent_available:
-        st.error("GROQ_API_KEY is not set, so only the deterministic baseline can answer.", icon="🔑")
+        # Names the variable the ACTIVE provider needs. It used to say GROQ_API_KEY
+        # unconditionally, which on an OpenRouter setup sent the operator to fix a
+        # key the product was not using.
+        st.error(f"{status.credential_variable} is not set, so only the deterministic "
+                 "baseline can answer.", icon="🔑")
     use_baseline = st.toggle(
         "Use the deterministic baseline instead", value=not status.agent_available,
         help="The Phase 3 lexical baseline: no model, no index. Kept as the comparison point.",
