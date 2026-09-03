@@ -278,38 +278,77 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-BRAND_INK = "#172033"
+BRAND_INK = "#101a2b"
 BRAND_ACCENT = "#2a78d6"
+
+#: Department label per role. The role keys are machine identifiers; an intranet
+#: shows a department.
+DEPARTMENT = {
+    "customer_success": "Customer Success",
+    "engineering": "Engineering",
+    "people_operations": "People Operations",
+    "finance": "Finance",
+}
+
+#: Inline SVG, not a file: a generic eight-point north star. Inline because the
+#: Phase 9 container should not need an asset path to render its own header, and
+#: because an external URL in a permission-aware internal tool is one more thing
+#: that can leak a referrer.
+LOGO = (
+    '<svg width="26" height="26" viewBox="0 0 32 32" fill="none" '
+    'xmlns="http://www.w3.org/2000/svg" aria-label="Northstar Labs">'
+    '<path d="M16 1.6l2.9 9.3 9.5-3-6.6 7.1 6.6 7.1-9.5-3L16 30.4l-2.9-9.3-9.5 3 '
+    '6.6-7.1-6.6-7.1 9.5 3z" fill="#2a78d6"/>'
+    '<circle cx="16" cy="16" r="3.1" fill="#ffffff"/></svg>'
+)
 
 st.markdown(
     f"""
     <style>
-      /* tighten Streamlit's default page padding so the header reads as a bar */
-      .block-container {{ padding-top: 1.2rem; max-width: 1200px; }}
+      /* Streamlit keeps a fixed toolbar at the top of the viewport. The header bar
+         below was being clipped in half because the container padding pulled it
+         underneath that toolbar - so the padding has to clear it, not fight it. */
+      .block-container {{ padding-top: 3.4rem; padding-bottom: 3rem; max-width: 1180px; }}
+
       .ns-bar {{
-        display: flex; align-items: center; gap: 1rem;
-        background: {BRAND_INK}; color: #fff;
-        padding: 0.7rem 1.1rem; border-radius: 10px; margin-bottom: 0.35rem;
+        display: flex; align-items: center; gap: 1.15rem;
+        background: linear-gradient(180deg, {BRAND_INK} 0%, #17253c 100%);
+        color: #fff; padding: 0.85rem 1.25rem; border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(16,26,43,.18);
       }}
       .ns-mark {{
-        font-weight: 700; letter-spacing: .02em; font-size: 1.02rem;
-        display: flex; align-items: center; gap: .5rem;
+        display: flex; align-items: center; gap: .6rem;
+        font-weight: 700; font-size: 1rem; letter-spacing: .04em;
       }}
-      .ns-dot {{
-        width: 9px; height: 9px; border-radius: 50%;
-        background: {BRAND_ACCENT}; display: inline-block;
-      }}
-      .ns-nav {{ display: flex; gap: 1.1rem; font-size: .86rem; opacity: .72; }}
+      .ns-nav {{ display: flex; gap: 1.25rem; font-size: .85rem; }}
+      .ns-nav span {{ opacity: .62; }}
+      .ns-nav span.on {{ opacity: 1; font-weight: 600;
+                         border-bottom: 2px solid {BRAND_ACCENT}; padding-bottom: 2px; }}
       .ns-spacer {{ flex: 1 1 auto; }}
       .ns-who {{
-        font-size: .82rem; background: rgba(255,255,255,.10);
-        padding: .32rem .7rem; border-radius: 999px; white-space: nowrap;
+        display: flex; align-items: center; gap: .5rem; font-size: .82rem;
+        background: rgba(255,255,255,.11); padding: .34rem .75rem; border-radius: 999px;
       }}
+      .ns-avatar {{
+        width: 22px; height: 22px; border-radius: 50%; background: {BRAND_ACCENT};
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: .68rem; font-weight: 700;
+      }}
+
       .ns-proto {{
-        font-size: .78rem; color: #7a4b00; background: #fff4d6;
-        border: 1px solid #f0d089; border-radius: 8px;
-        padding: .45rem .7rem; margin-bottom: 1rem;
+        font-size: .8rem; line-height: 1.45; color: #7a4b00; background: #fff8e6;
+        border: 1px solid #f0d089; border-left: 4px solid #eda100;
+        border-radius: 8px; padding: .6rem .85rem; margin: .8rem 0 1.4rem 0;
       }}
+
+      .ns-welcome {{ margin: .2rem 0 .1rem 0; font-size: 1.55rem; font-weight: 700;
+                     color: {BRAND_INK}; letter-spacing: -.01em; }}
+      .ns-sub {{ color: #5b6472; font-size: .93rem; margin-bottom: .2rem; }}
+
+      /* Readability: roomier chat bubbles and calmer tab labels */
+      [data-testid="stChatMessage"] {{ padding: .55rem .3rem; }}
+      .stTabs [data-baseweb="tab"] {{ font-size: .93rem; padding: .5rem 1rem; }}
+      div[data-testid="stExpander"] details {{ border-radius: 8px; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -318,27 +357,39 @@ st.markdown(
 service = get_service()
 status = service.status()
 
-# The switcher lives in the sidebar (below) but the chip has to render in the
-# header, so identity is resolved first.
 employee_key = st.session_state.get("employee_key", next(iter(EMPLOYEES)))
 employee = EMPLOYEES[employee_key]
+department = DEPARTMENT.get(employee.role, employee.role.replace("_", " ").title())
+initials = "".join(part[0] for part in employee.display_name.split()[:2]).upper()
 
 st.markdown(
     f"""
     <div class="ns-bar">
-      <div class="ns-mark"><span class="ns-dot"></span>NORTHSTAR LABS</div>
-      <div class="ns-nav"><span>Home</span><span>Projects</span><span>Customers</span>
-        <span>Policies</span><span style="opacity:1;font-weight:600">Release Coordinator</span></div>
+      <div class="ns-mark">{LOGO}<span>NORTHSTAR&nbsp;LABS</span></div>
+      <div class="ns-nav">
+        <span>Home</span><span>Projects</span><span>Customers</span><span>Policies</span>
+        <span class="on">Release Coordinator</span>
+      </div>
       <div class="ns-spacer"></div>
-      <div class="ns-who">Signed in as <b>{employee.display_name}</b> · {employee.role.replace('_', ' ')}</div>
+      <div class="ns-who"><span class="ns-avatar">{initials}</span>
+        <span>{employee.display_name} · {department}</span></div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="ns-proto"><b>Prototype.</b> The profile switcher is <b>role simulation, '
-    'not authentication</b> — there is no credential behind it, and the navigation above is '
-    'inert. Permission filtering is real and enforced before retrieval; identity is not.</div>',
+    '<div class="ns-proto"><b>Prototype.</b> The profile switcher is '
+    '<b>role simulation, not authentication</b> — there is no credential behind it, and the '
+    'navigation above is inert. Permission filtering is real and enforced before retrieval; '
+    'identity is not.</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    f'<div class="ns-welcome">Welcome, {employee.display_name} — {department}</div>'
+    f'<div class="ns-sub">Ask about release readiness, customer commitments, policies or '
+    f'work items. Every answer shows its sources, and you only ever see what your role '
+    f'is cleared for.</div>',
     unsafe_allow_html=True,
 )
 
@@ -347,26 +398,28 @@ assistant_tab, evaluation_tab, about_tab = st.tabs(
 )
 
 with st.sidebar:
-    st.markdown("### Who is asking")
+    st.markdown("### 👤 Signed in as")
     st.selectbox(
-        "Employee profile",
+        "Switch profile",
         options=list(EMPLOYEES),
-        format_func=lambda key: f"{EMPLOYEES[key].display_name} — {EMPLOYEES[key].role}",
+        format_func=lambda key: (f"{EMPLOYEES[key].display_name} — "
+                                 f"{DEPARTMENT.get(EMPLOYEES[key].role, EMPLOYEES[key].role)}"),
         key="employee_key",
+        label_visibility="collapsed",
     )
     employee = EMPLOYEES[st.session_state["employee_key"]]
     st.caption("Identity is bound into the tools before the model runs. "
                "The assistant has no way to change who it is asking as.")
 
-    st.markdown("### Index")
-    st.metric("Indexed units", status.index_units)
+    st.markdown("### 📚 Company knowledge")
+    st.metric("Records indexed", status.index_units)
     st.caption(f"Last indexed: `{status.index_last_indexed}`")
     if status.index_degraded:
         st.warning("At least one source is a degraded fallback, not live data.", icon="🕒")
     for name, freshness, detail in status.index_sources:
         st.caption(f"`{name}` — **{freshness}**" + (f" · {detail}" if detail else ""))
 
-    st.markdown("### Configuration")
+    st.markdown("### ⚙️ How answers are produced")
     st.caption(
         f"Model `{status.model}` · retrieval `{status.retrieval_mode}` "
         f"(lexical weight {status.lexical_weight}) · at most {status.max_tool_calls} tool calls per question"
@@ -379,19 +432,15 @@ with st.sidebar:
     )
 
     counts = service.feedback_summary()
-    st.markdown("### Feedback")
+    st.markdown("### 💬 Feedback so far")
     st.caption(f"👍 {counts['up']} · 👎 {counts['down']} · {counts['total']} total")
 
 with assistant_tab:
     left, right = st.columns([0.62, 0.38], gap="large")
 
     with left:
-        st.markdown(f"#### Ask about release readiness")
-        st.caption(
-            "Answers come only from Northstar's own Slack, email, documents, work items "
-            "and business records — with a source for every claim, and a refusal when the "
-            "evidence is missing or outside your permissions."
-        )
+        # No heading here: the welcome line above already says what this is, and a
+        # second title pushed the first question below the fold.
 
         if "messages" not in st.session_state:
             st.session_state.messages = []
@@ -410,14 +459,17 @@ with assistant_tab:
 
         if not st.session_state.messages:
             st.info(
-                "Try: **Is Atlas ready to release, and which conditions are still unmet?** — "
-                "or switch to Maya Chen and ask about the current refund threshold to see the "
-                "same corpus answer differently.",
+                "**Try one of these**\n\n"
+                "- *Is Atlas ready to release, and which conditions are still unmet?*\n"
+                "- *What Atlas date has Acme Freight been told, and is it still correct?*\n"
+                "- *Show me the restricted compensation review* — to see a refusal\n\n"
+                "Switch profiles in the sidebar and ask the same question again: the same "
+                "records, a different answer.",
                 icon="💡",
             )
 
     with right:
-        st.markdown("#### Pending actions")
+        st.markdown("#### 🔒 Pending actions")
         st.caption("Nothing here executes until it is approved in this panel.")
         render_pending_actions(employee)
 
