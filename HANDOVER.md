@@ -814,6 +814,37 @@ the absence claim the prompt forbids. The **status** was still correct, because 
 wins ties, so the structural control held while behavioural compliance was partial. The
 same split the threat model predicts.
 
+### F-35 · The `projects` table is unreachable, so two claims in the brief are false
+Found while writing a test script. The five tools are `search_company_knowledge`,
+`search_work_items`, `get_support_case`, `compare_sources` and `propose_action`.
+**None of them queries the `projects` table.** `get_support_case("P-ATLAS")` returns
+`status: empty`, and a knowledge search for Orbit finds the word but never `Sofia Rossi`,
+because that row exists only in SQLite.
+
+`02-system-design.md` suggested a `list_project_status` tool. It was never built, and
+nothing caught the omission because no evaluation case depends on it — EVAL-004 asks for a
+*support case*, which works.
+
+**Two claims in `PRODUCT_BRIEF.md` are therefore wrong:**
+
+1. **P1 does not span four source families.** The brief says it reconciles the release
+   brief against `GH-142`, `GH-149`, `SLACK-ATLAS-102` **and `DB P-ATLAS`**. The database
+   leg is unreachable, so P1 spans **three** families. The answers are still correct,
+   because the brief document names the four conditions and the issues carry their state —
+   the project row was never load-bearing for the answer, only for the claim about breadth.
+2. **P-ORBIT cannot serve as a second instance.** The brief offers it to show the product
+   generalises beyond Atlas. `P-ORBIT` (Orbit analytics, Sofia Rossi, on track,
+   2026-10-30) lives only in `projects`, so *"Is Orbit ready to release?"* cannot be
+   answered at all.
+
+Also unreachable: `customers`, so `annual_value_eur` cannot be retrieved. That makes the
+Finance-only rule on contract value in `ACCESS_MATRIX.md` **untestable rather than
+enforced** — a policy nothing can currently violate.
+
+**Fix is small:** one narrow read-only tool over `projects` (and optionally `customers`),
+parameterised by id, matching the `get_support_case` contract. Until it exists, the brief's
+four-family and second-project claims must be corrected rather than repeated.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
