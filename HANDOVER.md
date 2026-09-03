@@ -587,6 +587,43 @@ class is captured but not its message, so the cause is unknown. Worth suspecting
 request-size or provider-side limit on the action-proposal turn specifically, since it is
 the only case that asks the agent to compose a payload.
 
+### F-29 · The variant comparison cannot be read off pass counts, and my scorer flatters the baseline
+The verdict matrix invites two wrong readings, and both would change the release
+recommendation.
+
+**Wrong reading 1 — "the baseline beats the agent."** Across all cases the baseline shows
+**9 Pass / 6 Partial** and the hybrid agent **4 Pass / 1 Partial / 10 Not scored**. That is
+a coverage artifact: quota ran out during the agent's Tier B cases. The like-for-like
+comparison, on the **5 cases scored in both**, is:
+
+| Case | Baseline | Hybrid + agent | Better |
+| --- | --- | --- | --- |
+| EVAL-001 | Pass | Pass | tie |
+| EVAL-005 | Partial | **Pass** | **hybrid** — it refuses; the baseline cannot |
+| EVAL-006 | Pass | Pass | tie |
+| EVAL-007 | Partial | **Pass** | **hybrid** — it abstains; the baseline cannot |
+| P1 | **Pass** | Partial | **baseline** — grounding (F-28) |
+
+**hybrid 2, baseline 1, tied 2.** Not a decisive win, and the agent's two wins are exactly
+the two failures Phase 3 predicted it would fix.
+
+**Wrong reading 2 — and this one is my scorer's fault.** Every single baseline status is
+`evidence_found`: 15 of 15. My `DEFAULT_ACCEPTABLE` set treats `evidence_found` as an
+acceptable behaviour, so **the baseline passes 9 cases without ever answering a
+question.** The starter's own docstring says `evidence_found` exists to "make clear that
+lexical results are not yet a synthesized answer" — so those are *retrieval* passes wearing
+a behaviour pass.
+
+**I am deliberately NOT changing the scoring rule.** It would move the numbers in the
+direction that flatters our own product, after seeing results, which is precisely what
+fixing thresholds in advance (D-009) exists to prevent. The honest fix is disclosure, not
+a rule change: the baseline's pass count is reported **with** the fact that all of it is
+`evidence_found`, and the like-for-like table above is the comparison that carries weight.
+
+**Consequence for the release decision:** the three-variant comparison `05` asks for is
+**incomplete** — `semantic_agent` has zero runs and `hybrid_agent` covers 5 of 15 cases.
+That is a stated gap, not something to paper over with the pass counts we happen to have.
+
 ## 5 · Decisions already taken
 
 Full entries in `deliverables/DECISIONS.md`. Do not relitigate without new evidence.
