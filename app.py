@@ -282,16 +282,18 @@ st.set_page_config(
 
 BRAND_INK = "#101a2b"
 
-#: The header bar's own palette. #E34208 is sampled directly from the reference
-#: loading animation the team picked (cssbud.com's spinner GIF), not eyeballed.
-#: Flat, not a gradient: a two-stop version was tried first with a darker second
-#: stop for depth, and the ink that read clearly on the light stop dropped below
-#: WCAG AA (4.05:1, need 4.5) on the dark one. One flat orange keeps the contrast
-#: uniform everywhere text sits on it, which the darker "brand" ink is chosen
-#: against - #140D08 clears 4.63:1 on this orange, safely inside AA for normal
-#: text, not just large. Banner text is deliberately monochrome (one ink, no
-#: colour) throughout, per the brief - including the compass mark below.
-BANNER_ORANGE = "#E34208"
+#: The header bar's own palette. #E34208 was sampled directly from the reference
+#: loading animation (cssbud.com's "LOADING" GIF), not eyeballed - downloaded and
+#: read with Pillow. #EB774D is that same hue lightened 28% toward white (each
+#: channel moved 28% of the way to 255), on request for a lighter banner. Flat,
+#: not a gradient: a two-stop version was tried first with a darker second stop
+#: for depth, and the ink that read clearly on the light stop dropped below WCAG
+#: AA (4.05:1, need 4.5) on the dark one. One flat shade keeps the contrast
+#: uniform everywhere text sits on it. #140D08 clears 6.67:1 against the
+#: lightened orange - well inside AA, with more margin than the darker version
+#: had. Banner text is deliberately monochrome (one ink, no colour) throughout,
+#: per the brief - including the compass mark below.
+BANNER_ORANGE = "#EB774D"
 BANNER_INK = "#140D08"
 
 #: Department label per role. The role keys are machine identifiers; an intranet
@@ -394,24 +396,44 @@ st.markdown(
 
       /* A model-backed turn can take anywhere from a few seconds to well over a
          minute (free-tier providers vary a lot), so the waiting state needs a
-         moving element - text alone reads as frozen past a few seconds. This is
-         a CSS ring rather than the linked GIF it was modelled on: this product
-         embeds no third-party asset anywhere in its interface (the compass mark
-         above is inline SVG for the same reason), so the reference's colour was
-         sampled and rebuilt here instead of pointing at someone else's file. */
+         moving element - text alone reads as frozen past a few seconds.
+
+         Built rather than embedded: the reference GIF's actual motion (checked
+         frame by frame) is the whole hand-drawn sketch subtly re-rendering every
+         frame, which is a hand-drawn-animation technique, not something a CSS
+         rule reproduces. What carries the design instead is its two-colour
+         language - orange corner brackets framing the word, a small teal dot -
+         both sampled from the real file with Pillow. A scanning frame also suits
+         "Searching company knowledge" better than a generic ring: it reads as
+         actively looking for something, not just busy. Local for the same
+         reason as the compass mark above: no third-party asset in this
+         interface, so nothing here depends on an outside file loading or leaks
+         a referrer from a permission-aware internal tool. */
       .ns-loading {{
-        display: flex; align-items: center; gap: .65rem;
+        display: flex; align-items: center; gap: .8rem;
         color: {BANNER_INK}; font-size: .92rem; padding: .3rem 0;
       }}
-      .ns-spin {{
-        width: 18px; height: 18px; border-radius: 50%; flex: none;
-        border: 3px solid rgba(227,66,8,.22);
-        border-top-color: {BANNER_ORANGE};
-        animation: ns-spin .75s linear infinite;
+      .ns-scan {{ position: relative; width: 24px; height: 24px; flex: none; }}
+      .ns-scan .corner {{
+        position: absolute; width: 9px; height: 9px;
+        border: 2px solid {BANNER_ORANGE};
       }}
-      @keyframes ns-spin {{ to {{ transform: rotate(360deg); }} }}
+      .ns-scan .corner.tl {{ top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 3px 0 0 0; }}
+      .ns-scan .corner.tr {{ top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 3px 0 0; }}
+      .ns-scan .corner.bl {{ bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 3px; }}
+      .ns-scan .corner.br {{ bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 3px 0; }}
+      .ns-scan .dot {{
+        position: absolute; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
+        border-radius: 50%; background: #18AEB8;
+        animation: ns-scan-dot 1.3s ease-in-out infinite;
+      }}
+      @keyframes ns-scan-dot {{
+        0%   {{ top: 2px; opacity: .35; }}
+        50%  {{ top: 15px; opacity: 1; }}
+        100% {{ top: 2px; opacity: .35; }}
+      }}
       @media (prefers-reduced-motion: reduce) {{
-        .ns-spin {{ animation: none; border-top-color: rgba(227,66,8,.55); }}
+        .ns-scan .dot {{ animation: none; top: 9px; opacity: .8; }}
       }}
 
       /* Readability: roomier chat bubbles and calmer tab labels */
@@ -575,7 +597,10 @@ with assistant_tab:
                 # with no polling or re-render required.
                 waiting = st.empty()
                 waiting.markdown(
-                    '<div class="ns-loading"><span class="ns-spin"></span>'
+                    '<div class="ns-loading"><span class="ns-scan">'
+                    '<span class="corner tl"></span><span class="corner tr"></span>'
+                    '<span class="corner bl"></span><span class="corner br"></span>'
+                    '<span class="dot"></span></span>'
                     'Searching company knowledge…</div>',
                     unsafe_allow_html=True,
                 )
