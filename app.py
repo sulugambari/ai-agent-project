@@ -323,6 +323,31 @@ def _avatar_data_uris() -> dict[str, str]:
 
 AVATARS = _avatar_data_uris()
 
+#: The loading indicator, as the team's own chosen GIF - not a link to it.
+#: Earlier this was recreated as a CSS animation rather than pointing at the
+#: source (cssbud.com), because this interface embeds no third-party asset:
+#: a live URL is one more thing that can go unreachable, be swapped out from
+#: under the product, or leak a referrer from a permission-aware internal
+#: tool. Once the actual file was supplied directly, that objection no longer
+#: applies - it's now a local, committed asset like the avatars above, so it
+#: gets the same treatment: read once, inlined as a data URI, shipped inside
+#: the image rather than fetched at run time.
+#:
+#: `assets/loading_static.png` is one frame of the same GIF, served instead of
+#: it when the browser reports `prefers-reduced-motion` - an animated GIF has
+#: no native pause control, but `<picture><source media="...">` can swap the
+#: element entirely, so the reduced-motion path costs nothing extra at runtime.
+@st.cache_data(show_spinner=False)
+def _loading_gif_data_uris() -> tuple[str, str]:
+    import base64
+
+    gif = base64.b64encode(Path("assets/loading.gif").read_bytes()).decode("ascii")
+    static = base64.b64encode(Path("assets/loading_static.png").read_bytes()).decode("ascii")
+    return f"data:image/gif;base64,{gif}", f"data:image/png;base64,{static}"
+
+
+LOADING_GIF, LOADING_GIF_STATIC = _loading_gif_data_uris()
+
 #: Inline SVG, not a file: a compass rose - the same instrument the product's
 #: own name and page icon (🧭) already reference, so the header mark and the
 #: browser tab finally agree with each other. Inline for the same reason as
@@ -394,45 +419,15 @@ st.markdown(
 
       /* A model-backed turn can take anywhere from a few seconds to well over a
          minute (free-tier providers vary a lot), so the waiting state needs a
-         moving element - text alone reads as frozen past a few seconds.
-
-         Built rather than embedded: the reference GIF's actual motion (checked
-         frame by frame) is the whole hand-drawn sketch subtly re-rendering every
-         frame, which is a hand-drawn-animation technique, not something a CSS
-         rule reproduces. What carries the design instead is its two-colour
-         language - orange corner brackets framing the word, a small teal dot -
-         both sampled from the real file with Pillow. A scanning frame also suits
-         "Searching company knowledge" better than a generic ring: it reads as
-         actively looking for something, not just busy. Local for the same
-         reason as the compass mark above: no third-party asset in this
-         interface, so nothing here depends on an outside file loading or leaks
-         a referrer from a permission-aware internal tool. */
+         moving element - text alone reads as frozen past a few seconds. This is
+         now the team's own GIF, on repeat (its own loop count is infinite),
+         served as a local asset baked into the image - see LOADING_GIF above
+         for why that changed from an earlier CSS recreation. */
       .ns-loading {{
         display: flex; align-items: center; gap: .8rem;
         color: {BANNER_INK}; font-size: .92rem; padding: .3rem 0;
       }}
-      .ns-scan {{ position: relative; width: 24px; height: 24px; flex: none; }}
-      .ns-scan .corner {{
-        position: absolute; width: 9px; height: 9px;
-        border: 2px solid {BANNER_ORANGE};
-      }}
-      .ns-scan .corner.tl {{ top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 3px 0 0 0; }}
-      .ns-scan .corner.tr {{ top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 3px 0 0; }}
-      .ns-scan .corner.bl {{ bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 3px; }}
-      .ns-scan .corner.br {{ bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 3px 0; }}
-      .ns-scan .dot {{
-        position: absolute; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
-        border-radius: 50%; background: #18AEB8;
-        animation: ns-scan-dot 1.3s ease-in-out infinite;
-      }}
-      @keyframes ns-scan-dot {{
-        0%   {{ top: 2px; opacity: .35; }}
-        50%  {{ top: 15px; opacity: 1; }}
-        100% {{ top: 2px; opacity: .35; }}
-      }}
-      @media (prefers-reduced-motion: reduce) {{
-        .ns-scan .dot {{ animation: none; top: 9px; opacity: .8; }}
-      }}
+      .ns-loading-gif {{ width: 34px; height: 34px; flex: none; object-fit: contain; }}
 
       /* Readability: roomier chat bubbles and calmer tab labels */
       [data-testid="stChatMessage"] {{ padding: .55rem .3rem; }}
@@ -564,6 +559,12 @@ with assistant_tab:
                         latency_ms=message.get("latency_ms"),
                     )
                     render_feedback(message["answer_id"], message["answer"]["retrieval_mode"])
+            # One divider per completed exchange, placed after the answer so it
+            # separates that result from whatever question comes next - not
+            # after the user's own turn, which would instead cut the question
+            # away from its own answer.
+            if message["role"] == "assistant":
+                st.divider()
 
         if not messages:
             with st.expander("💡 Try one of these", expanded=True):
@@ -589,16 +590,16 @@ with assistant_tab:
                 # A plain st.spinner() here is text-only past its first render,
                 # and a model-backed turn can run well past a minute on a
                 # free-tier provider - long enough that a static line reads as
-                # hung. The ring below is a CSS animation, so it keeps moving on
-                # its own for as long as the blocking call underneath takes,
-                # with no polling or re-render required.
+                # hung. The GIF loops on its own (its own loop count is
+                # infinite) for as long as the blocking call underneath takes,
+                # with no polling or re-render required - an <img> keeps
+                # animating regardless of what the surrounding Python is doing.
                 waiting = st.empty()
                 waiting.markdown(
-                    '<div class="ns-loading"><span class="ns-scan">'
-                    '<span class="corner tl"></span><span class="corner tr"></span>'
-                    '<span class="corner bl"></span><span class="corner br"></span>'
-                    '<span class="dot"></span></span>'
-                    'Searching company knowledge…</div>',
+                    '<div class="ns-loading"><picture>'
+                    f'<source srcset="{LOADING_GIF_STATIC}" media="(prefers-reduced-motion: reduce)">'
+                    f'<img class="ns-loading-gif" src="{LOADING_GIF}" alt="">'
+                    '</picture>Searching company knowledge…</div>',
                     unsafe_allow_html=True,
                 )
                 if use_baseline:

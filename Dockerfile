@@ -103,7 +103,18 @@ ENV PYTHONUNBUFFERED=1 \
     # should not emit telemetry about how it is used.
     ANONYMIZED_TELEMETRY=False \
     STREAMLIT_SERVER_HEADLESS=true \
-    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
+    # Streamlit's file watcher walks every loaded module's __path__ to know what
+    # to re-run on a source edit. Loading the embedding model pulls in
+    # transformers, which lazily exposes vision submodules (yolos, zoedepth,
+    # ...) that import torchvision - a dependency this text-only product never
+    # installs. The watcher's probe hits those imports, fails, and logs a full
+    # traceback on every rerun. Harmless (nothing here actually renders an
+    # image), but it is real wasted work and log noise on every single question.
+    # A packaged container's source does not change at runtime - there is
+    # nothing to hot-reload - so the fix is to turn the watcher off rather than
+    # install a multi-hundred-MB vision library this product has no use for.
+    STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
 
 # A non-root account, and the data directories created HERE rather than by the
 # volume mount. Docker seeds a fresh named volume from the image path including
