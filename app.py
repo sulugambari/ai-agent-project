@@ -279,7 +279,18 @@ st.set_page_config(
 )
 
 BRAND_INK = "#101a2b"
-BRAND_ACCENT = "#2a78d6"
+
+#: The header bar's own palette. #E34208 is sampled directly from the reference
+#: loading animation the team picked (cssbud.com's spinner GIF), not eyeballed.
+#: Flat, not a gradient: a two-stop version was tried first with a darker second
+#: stop for depth, and the ink that read clearly on the light stop dropped below
+#: WCAG AA (4.05:1, need 4.5) on the dark one. One flat orange keeps the contrast
+#: uniform everywhere text sits on it, which the darker "brand" ink is chosen
+#: against - #140D08 clears 4.63:1 on this orange, safely inside AA for normal
+#: text, not just large. Banner text is deliberately monochrome (one ink, no
+#: colour) throughout, per the brief - including the compass mark below.
+BANNER_ORANGE = "#E34208"
+BANNER_INK = "#140D08"
 
 #: Department label per role. The role keys are machine identifiers; an intranet
 #: shows a department.
@@ -290,16 +301,26 @@ DEPARTMENT = {
     "finance": "Finance",
 }
 
-#: Inline SVG, not a file: a generic eight-point north star. Inline because the
-#: Phase 9 container should not need an asset path to render its own header, and
-#: because an external URL in a permission-aware internal tool is one more thing
-#: that can leak a referrer.
+#: Inline SVG, not a file: a compass rose - the same instrument the product's
+#: own name and page icon (🧭) already reference, so the header mark and the
+#: browser tab finally agree with each other. Inline for the same reason as
+#: before: no asset path for the container to lose, and no external URL for a
+#: permission-aware internal tool to leak a referrer to.
+#:
+#: The needle is two-tone dark/grey rather than the traditional red-north
+#: convention, on purpose: the header text next to it is deliberately
+#: monochrome, and a red tip would be the one note of colour in a bar that is
+#: supposed to have none.
 LOGO = (
-    '<svg width="26" height="26" viewBox="0 0 32 32" fill="none" '
-    'xmlns="http://www.w3.org/2000/svg" aria-label="Northstar Labs">'
-    '<path d="M16 1.6l2.9 9.3 9.5-3-6.6 7.1 6.6 7.1-9.5-3L16 30.4l-2.9-9.3-9.5 3 '
-    '6.6-7.1-6.6-7.1 9.5 3z" fill="#2a78d6"/>'
-    '<circle cx="16" cy="16" r="3.1" fill="#ffffff"/></svg>'
+    f'<svg width="26" height="26" viewBox="0 0 32 32" fill="none" '
+    f'xmlns="http://www.w3.org/2000/svg" aria-label="Northstar Labs">'
+    f'<circle cx="16" cy="16" r="12.5" stroke="{BANNER_INK}" stroke-width="1.6"/>'
+    f'<path d="M16 2.5v3.2M16 26.3v3.2M29.5 16h-3.2M5.7 16H2.5" '
+    f'stroke="{BANNER_INK}" stroke-width="1.6" stroke-linecap="round"/>'
+    f'<polygon points="16,7.5 19,16 13,16" fill="{BANNER_INK}"/>'
+    f'<polygon points="16,24.5 19,16 13,16" fill="{BANNER_INK}" fill-opacity="0.5"/>'
+    f'<circle cx="16" cy="16" r="1.7" fill="#ffffff" stroke="{BANNER_INK}" stroke-width="1"/>'
+    f'</svg>'
 )
 
 st.markdown(
@@ -312,25 +333,30 @@ st.markdown(
 
       .ns-bar {{
         display: flex; align-items: center; gap: 1.15rem;
-        background: linear-gradient(180deg, {BRAND_INK} 0%, #17253c 100%);
-        color: #fff; padding: 0.85rem 1.25rem; border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(16,26,43,.18);
+        background: {BANNER_ORANGE};
+        color: {BANNER_INK}; padding: 0.85rem 1.25rem; border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(20,13,8,.22);
       }}
       .ns-mark {{
         display: flex; align-items: center; gap: .6rem;
         font-weight: 700; font-size: 1rem; letter-spacing: .04em;
+        color: {BANNER_INK};
       }}
-      .ns-nav {{ display: flex; gap: 1.25rem; font-size: .85rem; }}
-      .ns-nav span {{ opacity: .62; }}
-      .ns-nav span.on {{ opacity: 1; font-weight: 600;
-                         border-bottom: 2px solid {BRAND_ACCENT}; padding-bottom: 2px; }}
+      /* Inactive items are distinguished by WEIGHT, not by dimming their colour -
+         opacity looked right at a glance but quietly took every nav label below
+         the 4.5:1 contrast this ink was chosen to clear. */
+      .ns-nav {{ display: flex; gap: 1.25rem; font-size: .85rem; color: {BANNER_INK}; font-weight: 400; }}
+      .ns-nav span.on {{ font-weight: 700;
+                         border-bottom: 2px solid {BANNER_INK}; padding-bottom: 2px; }}
       .ns-spacer {{ flex: 1 1 auto; }}
       .ns-who {{
         display: flex; align-items: center; gap: .5rem; font-size: .82rem;
-        background: rgba(255,255,255,.11); padding: .34rem .75rem; border-radius: 999px;
+        color: {BANNER_INK};
+        background: rgba(20,13,8,.1); padding: .34rem .75rem; border-radius: 999px;
       }}
       .ns-avatar {{
-        width: 22px; height: 22px; border-radius: 50%; background: {BRAND_ACCENT};
+        width: 22px; height: 22px; border-radius: 50%; background: {BANNER_INK};
+        color: #fff;
         display: inline-flex; align-items: center; justify-content: center;
         font-size: .68rem; font-weight: 700;
       }}
@@ -344,6 +370,28 @@ st.markdown(
       .ns-welcome {{ margin: .2rem 0 .1rem 0; font-size: 1.55rem; font-weight: 700;
                      color: {BRAND_INK}; letter-spacing: -.01em; }}
       .ns-sub {{ color: #5b6472; font-size: .93rem; margin-bottom: .2rem; }}
+
+      /* A model-backed turn can take anywhere from a few seconds to well over a
+         minute (free-tier providers vary a lot), so the waiting state needs a
+         moving element - text alone reads as frozen past a few seconds. This is
+         a CSS ring rather than the linked GIF it was modelled on: this product
+         embeds no third-party asset anywhere in its interface (the compass mark
+         above is inline SVG for the same reason), so the reference's colour was
+         sampled and rebuilt here instead of pointing at someone else's file. */
+      .ns-loading {{
+        display: flex; align-items: center; gap: .65rem;
+        color: {BANNER_INK}; font-size: .92rem; padding: .3rem 0;
+      }}
+      .ns-spin {{
+        width: 18px; height: 18px; border-radius: 50%; flex: none;
+        border: 3px solid rgba(227,66,8,.22);
+        border-top-color: {BANNER_ORANGE};
+        animation: ns-spin .75s linear infinite;
+      }}
+      @keyframes ns-spin {{ to {{ transform: rotate(360deg); }} }}
+      @media (prefers-reduced-motion: reduce) {{
+        .ns-spin {{ animation: none; border-top-color: rgba(227,66,8,.55); }}
+      }}
 
       /* Readability: roomier chat bubbles and calmer tab labels */
       [data-testid="stChatMessage"] {{ padding: .55rem .3rem; }}
@@ -489,12 +537,25 @@ with assistant_tab:
         with left:
             with st.chat_message("user"):
                 st.markdown(question)
-            with st.chat_message("assistant"), st.spinner("Searching company knowledge..."):
+            with st.chat_message("assistant"):
+                # A plain st.spinner() here is text-only past its first render,
+                # and a model-backed turn can run well past a minute on a
+                # free-tier provider - long enough that a static line reads as
+                # hung. The ring below is a CSS animation, so it keeps moving on
+                # its own for as long as the blocking call underneath takes,
+                # with no polling or re-render required.
+                waiting = st.empty()
+                waiting.markdown(
+                    '<div class="ns-loading"><span class="ns-spin"></span>'
+                    'Searching company knowledge…</div>',
+                    unsafe_allow_html=True,
+                )
                 if use_baseline:
                     result = service.ask_baseline(question, employee)
                 else:
                     result = service.ask(question, employee,
                                          conversation_id=f"ui-{employee_key}")
+                waiting.empty()
                 render_answer(result.answer, answer_id=result.answer_id,
                               latency_ms=result.latency_ms)
         messages.append({
