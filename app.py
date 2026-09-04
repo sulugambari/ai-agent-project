@@ -204,8 +204,6 @@ def render_pending_actions(employee) -> None:
     """
     service = get_service()
     pending = service.pending_proposals()
-    st.divider()
-    st.subheader("Pending actions")
     if not pending:
         st.caption("Nothing is awaiting approval. The assistant cannot execute anything on its own.")
         return
@@ -568,15 +566,14 @@ with assistant_tab:
                     render_feedback(message["answer_id"], message["answer"]["retrieval_mode"])
 
         if not messages:
-            st.info(
-                "**Try one of these**\n\n"
-                "- *Is Atlas ready to release, and which conditions are still unmet?*\n"
-                "- *What Atlas date has Acme Freight been told, and is it still correct?*\n"
-                "- *Show me the restricted compensation review* — to see a refusal\n\n"
-                "Switch profiles in the sidebar and ask the same question again: the same "
-                "records, a different answer.",
-                icon="💡",
-            )
+            with st.expander("💡 Try one of these", expanded=True):
+                st.markdown(
+                    "- *Is Atlas ready to release, and which conditions are still unmet?*\n"
+                    "- *What Atlas date has Acme Freight been told, and is it still correct?*\n"
+                    "- *Show me the restricted compensation review* — to see a refusal\n\n"
+                    "Switch profiles in the sidebar and ask the same question again: the same "
+                    "records, a different answer."
+                )
 
     with right:
         st.markdown("#### 🔒 Pending actions")
