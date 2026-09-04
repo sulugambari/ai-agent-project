@@ -336,7 +336,7 @@ AVATARS = _avatar_data_uris()
 #: monochrome, and a red tip would be the one note of colour in a bar that is
 #: supposed to have none.
 LOGO = (
-    f'<svg width="26" height="26" viewBox="0 0 32 32" fill="none" '
+    f'<svg width="34" height="34" viewBox="0 0 32 32" fill="none" '
     f'xmlns="http://www.w3.org/2000/svg" aria-label="Northstar Labs">'
     f'<circle cx="16" cy="16" r="12.5" stroke="{BANNER_INK}" stroke-width="1.6"/>'
     f'<path d="M16 2.5v3.2M16 26.3v3.2M29.5 16h-3.2M5.7 16H2.5" '
@@ -362,8 +362,8 @@ st.markdown(
         box-shadow: 0 1px 3px rgba(20,13,8,.22);
       }}
       .ns-mark {{
-        display: flex; align-items: center; gap: .6rem;
-        font-weight: 700; font-size: 1rem; letter-spacing: .04em;
+        display: flex; align-items: center; gap: .7rem;
+        font-weight: 700; font-size: 1.3rem; letter-spacing: .03em;
         color: {BANNER_INK};
       }}
       /* Inactive items are distinguished by WEIGHT, not by dimming their colour -
@@ -374,12 +374,12 @@ st.markdown(
                          border-bottom: 2px solid {BANNER_INK}; padding-bottom: 2px; }}
       .ns-spacer {{ flex: 1 1 auto; }}
       .ns-who {{
-        display: flex; align-items: center; gap: .5rem; font-size: .82rem;
+        display: flex; align-items: center; gap: .7rem; font-size: 1.02rem;
         color: {BANNER_INK};
-        background: rgba(20,13,8,.1); padding: .34rem .75rem; border-radius: 999px;
+        background: rgba(20,13,8,.1); padding: .45rem 1rem .45rem .45rem; border-radius: 999px;
       }}
       .ns-avatar {{
-        width: 24px; height: 24px; border-radius: 50%; flex: none;
+        width: 42px; height: 42px; border-radius: 50%; flex: none;
         object-fit: cover; object-position: center top;
         border: 1px solid rgba(20,13,8,.35);
       }}
@@ -506,8 +506,8 @@ with st.sidebar:
     st.caption("Identity is bound into the tools before the model runs. "
                "The assistant has no way to change who it is asking as.")
 
-    st.divider()
     st.markdown(PROTOTYPE_BANNER, unsafe_allow_html=True)
+    st.divider()
     st.markdown("### 📚 Company knowledge")
     st.metric("Records indexed", status.index_units)
     st.caption(f"Last indexed: `{status.index_last_indexed}`")
