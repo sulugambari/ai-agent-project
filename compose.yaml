@@ -39,6 +39,18 @@ x-runtime: &runtime
     # about real use and must survive a rebuild like any other record.
     - index:/app/data/index
     - feedback:/app/data/feedback
+    # A BIND mount, not a named volume like the two above - deliberately, and
+    # for the opposite reason. `data/generated/` is produced by
+    # `scripts/run_eval.py` running directly on the HOST (there is no in-
+    # container path that writes it), so a named volume would start empty and
+    # the Evaluation tab would show "No evaluation runs recorded" forever, no
+    # matter how many real runs exist on disk - which is exactly what happened
+    # after Phase 9 shipped: `data/generated/` is in `.dockerignore` (correctly
+    # - it's git-ignored, per-team output) and was never given a mount either,
+    # so the container could not see the 53 scored runs sitting right next to
+    # it. Read-only: this container never writes evaluation results, so it
+    # should not be able to.
+    - ./data/generated:/app/data/generated:ro
   restart: unless-stopped
 
 services:

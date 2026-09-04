@@ -134,6 +134,7 @@ ENV HF_HUB_OFFLINE=1 \
 # lookups query - it is queried, never embedded, so it belongs in the image
 # rather than in the index volume.
 COPY --chown=northstar:northstar app.py ./
+COPY --chown=northstar:northstar assets/ ./assets/
 COPY --chown=northstar:northstar src/ ./src/
 COPY --chown=northstar:northstar scripts/build_index.py ./scripts/build_index.py
 COPY --chown=northstar:northstar data/raw/ ./data/raw/

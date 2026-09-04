@@ -20,6 +20,8 @@ re-trigger it.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -301,6 +303,26 @@ DEPARTMENT = {
     "finance": "Finance",
 }
 
+#: Per-employee avatar images, inlined as data URIs for the same reason the
+#: compass logo is inline SVG: no asset path for the Phase 9 container to lose,
+#: and the header is raw injected HTML, which cannot load a filesystem path
+#: directly - a browser cannot resolve `assets/avatars/leo.jpg` from inside a
+#: `<style>`/`<div>` block the way `st.image()` would resolve it for a normal
+#: Streamlit element. Read once at import time: four files, a few KB each.
+@st.cache_data(show_spinner=False)
+def _avatar_data_uris() -> dict[str, str]:
+    import base64
+
+    uris = {}
+    for key in EMPLOYEES:
+        path = Path("assets/avatars") / f"{key}.jpg"
+        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+        uris[key] = f"data:image/jpeg;base64,{encoded}"
+    return uris
+
+
+AVATARS = _avatar_data_uris()
+
 #: Inline SVG, not a file: a compass rose - the same instrument the product's
 #: own name and page icon (🧭) already reference, so the header mark and the
 #: browser tab finally agree with each other. Inline for the same reason as
@@ -355,10 +377,9 @@ st.markdown(
         background: rgba(20,13,8,.1); padding: .34rem .75rem; border-radius: 999px;
       }}
       .ns-avatar {{
-        width: 22px; height: 22px; border-radius: 50%; background: {BANNER_INK};
-        color: #fff;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: .68rem; font-weight: 700;
+        width: 24px; height: 24px; border-radius: 50%; flex: none;
+        object-fit: cover; object-position: center top;
+        border: 1px solid rgba(20,13,8,.35);
       }}
 
       .ns-proto {{
@@ -408,7 +429,6 @@ status = service.status()
 employee_key = st.session_state.get("employee_key", next(iter(EMPLOYEES)))
 employee = EMPLOYEES[employee_key]
 department = DEPARTMENT.get(employee.role, employee.role.replace("_", " ").title())
-initials = "".join(part[0] for part in employee.display_name.split()[:2]).upper()
 
 st.markdown(
     f"""
@@ -419,18 +439,23 @@ st.markdown(
         <span class="on">Release Coordinator</span>
       </div>
       <div class="ns-spacer"></div>
-      <div class="ns-who"><span class="ns-avatar">{initials}</span>
+      <div class="ns-who"><img class="ns-avatar" src="{AVATARS[employee_key]}"
+        alt="{employee.display_name}">
         <span>{employee.display_name} · {department}</span></div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-st.markdown(
+
+# PROTOTYPE_BANNER lives beside the sidebar block below, immediately above
+# "Company knowledge" - moved there on request. It stays a module-level
+# constant rather than an inline literal because it is now rendered from
+# inside `with st.sidebar:`, one indent level away from where it is defined.
+PROTOTYPE_BANNER = (
     '<div class="ns-proto"><b>Prototype.</b> The profile switcher is '
     '<b>role simulation, not authentication</b> — there is no credential behind it, and the '
     'navigation above is inert. Permission filtering is real and enforced before retrieval; '
-    'identity is not.</div>',
-    unsafe_allow_html=True,
+    'identity is not.</div>'
 )
 
 st.markdown(
@@ -459,6 +484,8 @@ with st.sidebar:
     st.caption("Identity is bound into the tools before the model runs. "
                "The assistant has no way to change who it is asking as.")
 
+    st.divider()
+    st.markdown(PROTOTYPE_BANNER, unsafe_allow_html=True)
     st.markdown("### 📚 Company knowledge")
     st.metric("Records indexed", status.index_units)
     st.caption(f"Last indexed: `{status.index_last_indexed}`")
@@ -467,6 +494,7 @@ with st.sidebar:
     for name, freshness, detail in status.index_sources:
         st.caption(f"`{name}` — **{freshness}**" + (f" · {detail}" if detail else ""))
 
+    st.divider()
     st.markdown("### ⚙️ How answers are produced")
     st.caption(
         f"Model `{status.model}` · retrieval `{status.retrieval_mode}` "
@@ -483,6 +511,7 @@ with st.sidebar:
         help="The Phase 3 lexical baseline: no model, no index. Kept as the comparison point.",
     )
 
+    st.divider()
     counts = service.feedback_summary()
     st.markdown("### 💬 Feedback so far")
     st.caption(f"👍 {counts['up']} · 👎 {counts['down']} · {counts['total']} total")
